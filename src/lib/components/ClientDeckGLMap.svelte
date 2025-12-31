@@ -100,12 +100,12 @@
 	function updateLayers() {
 		if (!deck || !mapReady) return;
 
-		// At close zoom, when selected OR hovered, the main point moves out of the way
-		// and a small marker stays at the actual tower location with a line
+		// At close zoom, when SELECTED (not hovered), the main point moves out of the way
+		// and a line points to the actual tower location
 		const isCloseZoom = currentZoom >= HOVER_OFFSET_MIN_ZOOM;
 
-		// The active tower is the selected one (priority) or the hovered one
-		const activeTowerId = selectedTowerId || hoveredTowerId;
+		// Only the selected tower triggers the offset behavior, not hover
+		const activeTowerId = selectedTowerId;
 		const activeTower = activeTowerId ? towers.find(t => t.id === activeTowerId) : null;
 
 		// Calculate line data for active tower at close zoom
