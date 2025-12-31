@@ -1841,7 +1841,6 @@ export const GET_TOWER_DETAILS = gql`
         tower_type
         first_seen_at
         last_seen_at
-        provider_count
         tower_site {
           id
           address
@@ -1850,28 +1849,9 @@ export const GET_TOWER_DETAILS = gql`
           county
           zip_code
           carrier
-          status
-          remarks
-          google_maps_url
           entity {
             id
             name
-            entity_type
-            mail_address
-            mail_city
-            mail_state
-            mail_zip
-            entity_contacts(order_by: { contact_order: asc }) {
-              id
-              first_name
-              last_name
-              full_name
-              title
-              phone_primary
-              phone_primary_dnc
-              email_primary
-              contact_order
-            }
           }
         }
         tower_providers {
