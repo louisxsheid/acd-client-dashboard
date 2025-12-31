@@ -54,20 +54,22 @@
 		selectedTowerDetails = null;
 
 		try {
+			// Load ALL matching towers for the map (high limit)
 			const response = await fetch('/api/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: query || '*',
 					type: 'towers',
-					limit: pageSize,
+					limit: 10000, // Get all matching for map
 					offset: 0
 				})
 			});
 
 			const result = await response.json();
-			listTowers = result.hits || [];
+			allTowers = result.hits || []; // Update map towers with search results
 			total = result.total || 0;
+			listTowers = allTowers.slice(0, pageSize); // First page for list
 		} catch (err) {
 			console.error('Search failed:', err);
 		} finally {
@@ -75,31 +77,11 @@
 		}
 	}
 
-	async function handlePageChange(newPage: number) {
-		if (!companyId) return;
-
+	function handlePageChange(newPage: number) {
 		page = newPage;
-		listLoading = true;
-
-		try {
-			const response = await fetch('/api/search', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					query: searchQuery || '*',
-					type: 'towers',
-					limit: pageSize,
-					offset: (newPage - 1) * pageSize
-				})
-			});
-
-			const result = await response.json();
-			listTowers = result.hits || [];
-		} catch (err) {
-			console.error('Pagination failed:', err);
-		} finally {
-			listLoading = false;
-		}
+		// Paginate from already-loaded allTowers (no network request needed)
+		const offset = (newPage - 1) * pageSize;
+		listTowers = allTowers.slice(offset, offset + pageSize);
 	}
 
 	async function handleTowerSelect(tower: TowerSearchDocument) {
