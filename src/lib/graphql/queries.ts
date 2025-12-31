@@ -1860,19 +1860,6 @@ export const GET_TOWER_DETAILS = gql`
             mail_city
             mail_state
             mail_zip
-            entity_contacts(order_by: { contact_order: asc }) {
-              id
-              contact_order
-              first_name
-              last_name
-              full_name
-              title
-              phone_primary
-              phone_primary_dnc
-              phone_secondary
-              email_primary
-              email_secondary
-            }
           }
         }
         tower_providers {
@@ -1887,6 +1874,28 @@ export const GET_TOWER_DETAILS = gql`
           }
         }
       }
+    }
+  }
+`;
+
+// Get entity contacts by entity ID
+export const GET_ENTITY_CONTACTS = gql`
+  query GetEntityContacts($entityId: uuid!) {
+    entity_contacts(
+      where: { entity_id: { _eq: $entityId } }
+      order_by: { contact_order: asc }
+    ) {
+      id
+      contact_order
+      first_name
+      last_name
+      full_name
+      title
+      phone_primary
+      phone_primary_dnc
+      phone_secondary
+      email_primary
+      email_secondary
     }
   }
 `;
