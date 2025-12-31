@@ -33,7 +33,10 @@ coverage/
 
 # Data files
 *.csv
-*.json
 *.jsonl
 *.dump
 *.duckdb
+
+# Keep package files
+!package.json
+!package-lock.json
