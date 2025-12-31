@@ -175,7 +175,7 @@
 		'FirstNet': { bg: '#0067ac', text: 'white' },
 		'American Tower': { bg: '#d4a017', text: 'black' },
 		'Crown Castle': { bg: '#6b46c1', text: 'white' },
-		'Ghost Lead': { bg: '#52525b', text: 'white' }
+		'Portfolio': { bg: '#8b5cf6', text: 'white' }
 	};
 
 	function getCarrierStyle(carrier: string | undefined): { bg: string; text: string } {

@@ -67,7 +67,7 @@
 		'FirstNet': [50, 150, 255],  // Light blue
 		'American Tower': [255, 200, 50], // Gold
 		'Crown Castle': [150, 100, 255], // Purple
-		'Ghost Lead': [180, 180, 180], // Gray for unconfirmed
+		'Portfolio': [139, 92, 246], // Purple for portfolio
 		default: [255, 255, 100]     // Yellow default for visibility
 	};
 

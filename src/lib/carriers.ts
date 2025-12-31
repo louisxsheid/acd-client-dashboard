@@ -154,7 +154,6 @@ export function getAccessStateColor(state: string): string {
       return '#f59e0b'; // Amber
     case 'SAMPLE':
       return '#71717a'; // Gray
-    case 'Ghost Lead':
     case 'Portfolio':
       return '#8b5cf6'; // Purple
     default:
