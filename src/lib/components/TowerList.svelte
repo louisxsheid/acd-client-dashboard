@@ -244,7 +244,8 @@
 			setTimeout(() => {
 				const element = document.querySelector(`[data-tower-id="${selectedTowerId}"]`);
 				if (element) {
-					element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+					// Scroll to top of list area so full expanded content is visible
+					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
 			}, 50);
 		}
