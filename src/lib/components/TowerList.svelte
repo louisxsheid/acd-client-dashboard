@@ -10,6 +10,7 @@
 		total?: number;
 		searchQuery?: string;
 		onSearch?: (query: string) => void;
+		onFilterChange?: (filteredTowers: TowerSearchDocument[]) => void;
 		expandedTowerDetails?: CompanyTower | null;
 		detailsLoading?: boolean;
 	}
@@ -22,6 +23,7 @@
 		total = 0,
 		searchQuery = '',
 		onSearch,
+		onFilterChange,
 		expandedTowerDetails = null,
 		detailsLoading = false
 	}: Props = $props();
@@ -66,9 +68,23 @@
 
 	const activeFilterCount = $derived((carrierFilter ? 1 : 0) + (entityFilter ? 1 : 0));
 
+	// Notify parent when filters change so map can update
+	$effect(() => {
+		const filtered = filteredTowers();
+		onFilterChange?.(filtered);
+	});
+
 	function clearFilters() {
 		carrierFilter = '';
 		entityFilter = '';
+	}
+
+	function handleCarrierChange(e: Event) {
+		carrierFilter = (e.target as HTMLSelectElement).value;
+	}
+
+	function handleEntityChange(e: Event) {
+		entityFilter = (e.target as HTMLSelectElement).value;
 	}
 
 	// Debounced search
@@ -229,23 +245,41 @@
 
 		{#if showFilters}
 			<div class="filter-panel">
-				<div class="filter-row">
-					<select bind:value={carrierFilter} class="filter-select">
-						<option value="">All Carriers</option>
-						{#each uniqueCarriers() as carrier}
-							<option value={carrier}>{carrier}</option>
-						{/each}
-					</select>
-					<select bind:value={entityFilter} class="filter-select">
-						<option value="">All Entities</option>
-						{#each uniqueEntities() as entity}
-							<option value={entity}>{entity}</option>
-						{/each}
-					</select>
+				<div class="filter-group">
+					<span class="filter-label">Carrier</span>
+					<div class="select-wrapper">
+						<select value={carrierFilter} onchange={handleCarrierChange} class="filter-select">
+							<option value="">All</option>
+							{#each uniqueCarriers() as carrier}
+								<option value={carrier}>{carrier}</option>
+							{/each}
+						</select>
+						<svg class="select-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="m6 9 6 6 6-6"/>
+						</svg>
+					</div>
+				</div>
+				<div class="filter-group">
+					<span class="filter-label">Entity</span>
+					<div class="select-wrapper">
+						<select value={entityFilter} onchange={handleEntityChange} class="filter-select">
+							<option value="">All</option>
+							{#each uniqueEntities() as entity}
+								<option value={entity}>{entity}</option>
+							{/each}
+						</select>
+						<svg class="select-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="m6 9 6 6 6-6"/>
+						</svg>
+					</div>
 				</div>
 				{#if activeFilterCount > 0}
 					<button class="clear-filters-btn" onclick={clearFilters}>
-						Clear filters
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M18 6 6 18"/>
+							<path d="m6 6 12 12"/>
+						</svg>
+						Clear
 					</button>
 				{/if}
 			</div>
@@ -575,27 +609,44 @@
 
 	.filter-panel {
 		display: flex;
-		flex-direction: column;
 		gap: 0.5rem;
 		padding-top: 0.5rem;
-		border-top: 1px solid #3b3b50;
-		margin-top: 0.25rem;
+		align-items: flex-end;
 	}
 
-	.filter-row {
+	.filter-group {
 		display: flex;
-		gap: 0.5rem;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+	}
+
+	.filter-label {
+		font-size: 0.625rem;
+		font-weight: 500;
+		color: #71717a;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.select-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
 	}
 
 	.filter-select {
-		flex: 1;
-		padding: 0.5rem;
+		width: 100%;
+		padding: 0.5rem 1.75rem 0.5rem 0.625rem;
 		background-color: #1e1e2e;
 		border: 1px solid #3b3b50;
 		border-radius: 0.375rem;
 		color: #f4f4f5;
 		font-size: 0.75rem;
 		cursor: pointer;
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
 	}
 
 	.filter-select:focus {
@@ -603,18 +654,36 @@
 		border-color: #3b82f6;
 	}
 
+	.filter-select:hover {
+		border-color: #52525b;
+	}
+
+	.select-chevron {
+		position: absolute;
+		right: 0.5rem;
+		color: #71717a;
+		pointer-events: none;
+	}
+
 	.clear-filters-btn {
-		padding: 0.375rem 0.75rem;
-		background: none;
-		border: none;
-		color: #3b82f6;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.5rem 0.625rem;
+		background-color: transparent;
+		border: 1px solid #3b3b50;
+		border-radius: 0.375rem;
+		color: #a1a1aa;
 		font-size: 0.75rem;
 		cursor: pointer;
-		align-self: flex-start;
+		white-space: nowrap;
+		transition: all 0.15s;
 	}
 
 	.clear-filters-btn:hover {
-		text-decoration: underline;
+		background-color: rgba(239, 68, 68, 0.1);
+		border-color: rgba(239, 68, 68, 0.3);
+		color: #ef4444;
 	}
 
 	.search-icon {

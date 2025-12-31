@@ -10,6 +10,7 @@
 	// State
 	let searchQuery = $state('');
 	let allTowers = $state<TowerSearchDocument[]>([]); // All towers for the map and list
+	let displayTowers = $state<TowerSearchDocument[]>([]); // Towers to display on map (after filtering)
 	let selectedTower = $state<TowerSearchDocument | null>(null);
 	let selectedTowerDetails = $state<CompanyTower | null>(null);
 	let loading = $state(false);
@@ -32,12 +33,23 @@
 		if (allTowers.length > 0 && mapComponent && !hasFittedBounds && !loading) {
 			const bounds = calculateBounds(allTowers);
 			initialBounds = bounds;
+			displayTowers = allTowers; // Initially show all towers
 			setTimeout(() => {
 				mapComponent.fitBounds(bounds, 60);
 				hasFittedBounds = true;
 			}, 100);
 		}
 	});
+
+	// Handle filter changes from TowerList
+	function handleFilterChange(filteredTowers: TowerSearchDocument[]) {
+		displayTowers = filteredTowers;
+		// Fit map to filtered towers if we have any
+		if (filteredTowers.length > 0 && mapComponent) {
+			const bounds = calculateBounds(filteredTowers);
+			mapComponent.fitBounds(bounds, 60);
+		}
+	}
 
 	async function handleSearch(query: string) {
 		if (!companyId) return;
@@ -185,6 +197,7 @@
 				{total}
 				{searchQuery}
 				onSearch={handleSearch}
+				onFilterChange={handleFilterChange}
 				expandedTowerDetails={selectedTowerDetails}
 				{detailsLoading}
 			/>
@@ -193,13 +206,13 @@
 		<main class="map-section">
 			<ClientDeckGLMap
 				bind:this={mapComponent}
-				towers={allTowers}
+				towers={displayTowers}
 				selectedTowerId={selectedTower?.id ?? null}
 				onTowerSelect={handleTowerSelect}
 				onDeselectRequest={handleDeselect}
 				{initialView}
 				{loading}
-				totalTowers={total}
+				totalTowers={displayTowers.length}
 			/>
 
 			<!-- Reset zoom button -->
