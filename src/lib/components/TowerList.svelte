@@ -148,6 +148,8 @@
 				return '#f59e0b';
 			case 'Portfolio':
 				return '#8b5cf6'; // Purple for portfolio
+			case 'Lead':
+				return '#f97316'; // Orange for leads
 			case 'SAMPLE':
 				return '#71717a';
 			default:
@@ -158,9 +160,12 @@
 	function getAccessStateLabel(tower: TowerSearchDocument): string {
 		const states = Object.values(tower.access_states || {});
 		const state = states[0] || 'SAMPLE';
-		// Show "Portfolio" instead of "Ghost Lead"
+		// Show "Portfolio" for Ghost Lead towers only if entity is Oncor
 		if (state === 'Ghost Lead') {
-			return 'Portfolio';
+			if (tower.entity_name?.toLowerCase().includes('oncor')) {
+				return 'Portfolio';
+			}
+			return 'Lead'; // Other ghost leads show as "Lead"
 		}
 		return state;
 	}
@@ -175,7 +180,8 @@
 		'FirstNet': { bg: '#0067ac', text: 'white' },
 		'American Tower': { bg: '#d4a017', text: 'black' },
 		'Crown Castle': { bg: '#6b46c1', text: 'white' },
-		'Portfolio': { bg: '#8b5cf6', text: 'white' }
+		'Portfolio': { bg: '#8b5cf6', text: 'white' },
+		'Lead': { bg: '#f97316', text: 'white' }
 	};
 
 	function getCarrierStyle(carrier: string | undefined): { bg: string; text: string } {

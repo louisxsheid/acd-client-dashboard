@@ -68,6 +68,7 @@
 		'American Tower': [255, 200, 50], // Gold
 		'Crown Castle': [150, 100, 255], // Purple
 		'Portfolio': [139, 92, 246], // Purple for portfolio
+		'Lead': [249, 115, 22],      // Orange for leads
 		default: [255, 255, 100]     // Yellow default for visibility
 	};
 

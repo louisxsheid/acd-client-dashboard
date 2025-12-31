@@ -137,7 +137,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			{ name: 'T-Mobile', count: carriers.tmobile?.aggregate?.count || 0 },
 			{ name: 'American Tower', count: carriers.american_tower?.aggregate?.count || 0 },
 			{ name: 'Crown Castle', count: carriers.crown_castle?.aggregate?.count || 0 },
-			{ name: 'Portfolio', count: carriers.ghost_lead?.aggregate?.count || 0 }
+			{ name: 'Lead', count: carriers.ghost_lead?.aggregate?.count || 0 }
 		].filter(d => d.count > 0)
 		.sort((a, b) => b.count - a.count)
 		.map(d => ({ ...d, color: getCarrierColorByName(d.name) || '#6b7280' }));

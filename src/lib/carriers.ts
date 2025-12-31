@@ -139,6 +139,8 @@ export function getCarrierColorByName(name: string): string {
   if (name.includes("US Cellular")) return "#0057b8";
   if (name.includes("Dish")) return "#ec1c24";
   if (name.includes("FirstNet")) return "#003366";
+  if (name === "Lead") return "#f97316";
+  if (name === "Portfolio") return "#8b5cf6";
 
   return "#6b7280";
 }
@@ -156,6 +158,8 @@ export function getAccessStateColor(state: string): string {
       return '#71717a'; // Gray
     case 'Portfolio':
       return '#8b5cf6'; // Purple
+    case 'Lead':
+      return '#f97316'; // Orange for leads
     default:
       return '#71717a'; // Gray
   }
