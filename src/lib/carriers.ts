@@ -131,18 +131,25 @@ export function getCarrierColor(countryId: number, providerId: number): string {
   return "#6b7280";
 }
 
+// Normalize carrier/provider names for consistent display
+export function normalizeCarrierName(name: string): string {
+  if (name === "AMT") return "American Tower";
+  return name;
+}
+
 export function getCarrierColorByName(name: string): string {
-  if (name.includes("Verizon")) return "#cd040b";
-  if (name.includes("AT&T")) return "#00a8e0";
-  if (name.includes("T-Mobile")) return "#e20074";
-  if (name.includes("Sprint")) return "#ffe100";
-  if (name.includes("US Cellular")) return "#0057b8";
-  if (name.includes("Dish")) return "#ec1c24";
-  if (name.includes("FirstNet")) return "#003366";
-  if (name.includes("American Tower") || name === "AMT") return "#000000";
-  if (name.includes("Crown Castle")) return "#5EB1F7";
-  if (name.includes("Ghost Lead") || name === "Lead") return "#0a1628";
-  if (name === "Portfolio") return "#8b5cf6";
+  const normalized = normalizeCarrierName(name);
+  if (normalized.includes("Verizon")) return "#cd040b";
+  if (normalized.includes("AT&T")) return "#00a8e0";
+  if (normalized.includes("T-Mobile")) return "#e20074";
+  if (normalized.includes("Sprint")) return "#ffe100";
+  if (normalized.includes("US Cellular")) return "#0057b8";
+  if (normalized.includes("Dish")) return "#ec1c24";
+  if (normalized.includes("FirstNet")) return "#003366";
+  if (normalized.includes("American Tower")) return "#000000";
+  if (normalized.includes("Crown Castle")) return "#5EB1F7";
+  if (normalized.includes("Ghost Lead") || normalized === "Lead") return "#0a1628";
+  if (normalized === "Portfolio") return "#8b5cf6";
 
   return "#6b7280";
 }

@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { TowerSearchDocument } from '$lib/server/meilisearch';
 	import type { CompanyTower } from '$lib/types';
+	import { normalizeCarrierName } from '$lib/carriers';
 	import ContactSalesModal from './ContactSalesModal.svelte';
 	import LockedSection from './LockedSection.svelte';
 
@@ -239,19 +240,23 @@
 
 	function getCarrierStyle(carrier: string | undefined): { bg: string; text: string } {
 		if (!carrier) return { bg: '#3d4f63', text: 'rgba(255, 255, 255, 0.7)' };
+		// Normalize carrier name (e.g., "AMT" -> "American Tower")
+		const normalized = normalizeCarrierName(carrier);
 		// Special case for Portfolio
-		if (carrier === 'Portfolio') {
+		if (normalized === 'Portfolio') {
 			return { bg: '#5EB1F7', text: 'white' }; // Teal for portfolio
 		}
 		for (const [key, style] of Object.entries(CARRIER_COLORS)) {
-			if (carrier.toLowerCase().includes(key.toLowerCase())) {
+			if (normalized.toLowerCase().includes(key.toLowerCase())) {
 				return style;
 			}
 		}
 		return { bg: '#3d4f63', text: '#FFFFFF' };
 	}
 
-	// Transform provider/carrier name for display - "Ghost Lead" becomes "Portfolio" or stays "Ghost Lead"
+	// Transform provider/carrier name for display
+	// - "Ghost Lead" becomes "Portfolio" for Oncor entities
+	// - "AMT" becomes "American Tower"
 	function getDisplayProviderName(providerName: string, entityName?: string): string {
 		if (providerName === 'Ghost Lead') {
 			// Oncor entities show "Portfolio", others show "Ghost Lead"
@@ -260,7 +265,7 @@
 			}
 			return 'Ghost Lead';
 		}
-		return providerName;
+		return normalizeCarrierName(providerName);
 	}
 
 	// Get the display carrier label - shows "Portfolio" for Oncor entities, "Ghost Lead" for other Ghost Leads

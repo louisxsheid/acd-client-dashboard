@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import type { CompanyTower, Tower, TowerSite, Entity, EntityContact } from '$lib/types';
+	import { normalizeCarrierName } from '$lib/carriers';
 	import Spinner from './Spinner.svelte';
 	import LoadingSkeleton from './LoadingSkeleton.svelte';
 
@@ -142,7 +143,7 @@
 						</div>
 						<div class="info-item">
 							<label>Carrier</label>
-							<span>{site?.carrier || 'N/A'}</span>
+							<span>{site?.carrier ? normalizeCarrierName(site.carrier) : 'N/A'}</span>
 						</div>
 						<div class="info-item">
 							<label>Tower Type</label>

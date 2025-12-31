@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Deck } from '@deck.gl/core';
-	import { ScatterplotLayer, LineLayer } from '@deck.gl/layers';
+	import { IconLayer, LineLayer, ScatterplotLayer } from '@deck.gl/layers';
 	import maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import type { TowerSearchDocument } from '$lib/server/meilisearch';
@@ -56,6 +56,17 @@
 	// Hover offset threshold - only offset at zoom levels >= this
 	const HOVER_OFFSET_MIN_ZOOM = 14;
 	const HOVER_OFFSET_PIXELS = 40; // How many pixels to offset the tooltip dot
+
+	// Icon mapping for deck.gl IconLayer
+	const ICON_MAPPING = {
+		antenna: {
+			url: '/icons/antenna.svg',
+			width: 48,
+			height: 64,
+			anchorY: 32,
+			mask: true // Enables color tinting via getFillColor
+		}
+	};
 
 	// Carrier colors - matching carriers.ts for consistency
 	const CARRIER_COLORS: Record<string, [number, number, number]> = {
@@ -135,31 +146,30 @@
 		}
 
 		const layers = [
-			// Outer glow/border layer for better visibility
+			// Glow/shadow layer behind icons for visibility on satellite imagery
 			new ScatterplotLayer<TowerSearchDocument>({
 				id: 'towers-glow',
 				data: towers,
 				pickable: false,
-				opacity: 0.6,
+				opacity: 0.5,
 				stroked: false,
 				filled: true,
 				radiusScale: 1,
-				radiusMinPixels: 14,
-				radiusMaxPixels: 28,
+				radiusMinPixels: 16,
+				radiusMaxPixels: 32,
 				getPosition: (d) => {
-					// If this tower is active (selected or hovered) at close zoom, move glow to offset position
 					if (d.id === activeTowerId && isCloseZoom) {
 						const offset = getOffsetPosition(d);
 						if (offset) return offset;
 					}
 					return [d.longitude, d.latitude];
 				},
-				getRadius: (d) => (d.id === selectedTowerId ? 20 : 14),
+				getRadius: (d) => (d.id === selectedTowerId ? 24 : 16),
 				getFillColor: (d) => {
 					if (d.id === selectedTowerId) {
-						return [59, 130, 246, 150]; // Blue glow for selected
+						return [59, 130, 246, 180]; // Blue glow for selected
 					}
-					return [0, 0, 0, 120]; // Dark glow for contrast
+					return [0, 0, 0, 150]; // Dark glow for contrast
 				},
 				updateTriggers: {
 					getRadius: selectedTowerId,
@@ -167,46 +177,37 @@
 					getPosition: [activeTowerId, currentZoom]
 				}
 			}),
-			// Main tower points - these move when active (selected or hovered) at close zoom
-			new ScatterplotLayer<TowerSearchDocument>({
+			// Main tower icons using IconLayer
+			new IconLayer<TowerSearchDocument>({
 				id: 'towers',
 				data: towers,
 				pickable: true,
-				opacity: 1,
-				stroked: true,
-				filled: true,
-				radiusScale: 1,
-				radiusMinPixels: 8,
-				radiusMaxPixels: 20,
-				lineWidthMinPixels: 2,
-				lineWidthMaxPixels: 4,
+				getIcon: () => 'antenna',
+				iconAtlas: '/icons/antenna.svg',
+				iconMapping: ICON_MAPPING,
 				getPosition: (d) => {
-					// If this tower is active at close zoom, move it to offset position
 					if (d.id === activeTowerId && isCloseZoom) {
 						const offset = getOffsetPosition(d);
 						if (offset) return offset;
 					}
 					return [d.longitude, d.latitude];
 				},
-				getRadius: (d) => (d.id === selectedTowerId ? 14 : 10),
-				getFillColor: (d) => {
+				getSize: (d) => (d.id === selectedTowerId ? 40 : 32),
+				sizeScale: 1,
+				sizeUnits: 'pixels',
+				sizeMinPixels: 20,
+				sizeMaxPixels: 48,
+				getColor: (d) => {
 					if (d.id === selectedTowerId) {
 						return [255, 255, 255, 255]; // White for selected
 					}
 					return [...getCarrierColor(d.carrier, d.entity_name), 255];
 				},
-				getLineColor: (d) => {
-					if (d.id === selectedTowerId) {
-						return [59, 130, 246, 255]; // Blue border for selected
-					}
-					return [255, 255, 255, 200]; // White border for visibility
-				},
-				getLineWidth: (d) => (d.id === selectedTowerId ? 3 : 2),
+				billboard: true,
+				alphaCutoff: 0.05,
 				updateTriggers: {
-					getRadius: selectedTowerId,
-					getFillColor: selectedTowerId,
-					getLineColor: selectedTowerId,
-					getLineWidth: selectedTowerId,
+					getSize: selectedTowerId,
+					getColor: selectedTowerId,
 					getPosition: [activeTowerId, currentZoom]
 				}
 			}),
@@ -221,7 +222,6 @@
 				getWidth: 2,
 				widthUnits: 'pixels'
 			}),
-			// No marker at the actual tower location - just the line points to it
 		];
 
 		deck.setProps({ layers });
