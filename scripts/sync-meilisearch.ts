@@ -13,9 +13,10 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-const DATABASE_URL =
-	process.env.DATABASE_URL ||
-	'postgresql://postgres:hgUdhJAcvBFrUTZmYrfwrxZLLLPLHqrg@turntable.proxy.rlwy.net:11987/railway';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+	throw new Error('DATABASE_URL environment variable is required');
+}
 const MEILISEARCH_HOST = process.env.MEILISEARCH_HOST || 'http://localhost:7700';
 const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY || 'masterkey';
 

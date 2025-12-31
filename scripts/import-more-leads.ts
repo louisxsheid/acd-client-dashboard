@@ -14,7 +14,10 @@ import pg from 'pg';
 
 const { Pool } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres:hgUdhJAcvBFrUTZmYrfwrxZLLLPLHqrg@turntable.proxy.rlwy.net:11987/railway';
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+	throw new Error('DATABASE_URL environment variable is required');
+}
 const COMPANY_ID = process.env.COMPANY_ID || 'f66e30c8-d3df-4c3e-a0e0-c03c00d7a890'; // Aerocell company ID
 
 const pool = new Pool({ connectionString: DATABASE_URL });
