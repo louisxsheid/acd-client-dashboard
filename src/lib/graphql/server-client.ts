@@ -2,11 +2,12 @@ import { env } from '$env/dynamic/private';
 import { print, type DocumentNode } from 'graphql';
 
 function getEndpoint() {
-	return env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
+	const base = env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081';
+	return base.endsWith('/v1/graphql') ? base : `${base}/v1/graphql`;
 }
 
 function getAdminSecret() {
-	return env.HASURA_ADMIN_SECRET || 'devsecret';
+	return env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET || 'devsecret';
 }
 
 interface GraphQLResponse<T = any> {

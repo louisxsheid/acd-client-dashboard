@@ -4,11 +4,12 @@ import { env } from '$env/dynamic/private';
 import { getCarrierColorByName } from '$lib/carriers';
 
 function getEndpoint() {
-	return env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
+	const base = env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081';
+	return base.endsWith('/v1/graphql') ? base : `${base}/v1/graphql`;
 }
 
 function getAdminSecret() {
-	return env.HASURA_ADMIN_SECRET || 'devsecret';
+	return env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET || 'devsecret';
 }
 
 async function query(gql: string, variables: Record<string, any> = {}) {
