@@ -8,9 +8,6 @@
 		onSelect: (tower: TowerSearchDocument) => void;
 		loading?: boolean;
 		total?: number;
-		page?: number;
-		pageSize?: number;
-		onPageChange?: (page: number) => void;
 		searchQuery?: string;
 		onSearch?: (query: string) => void;
 		expandedTowerDetails?: CompanyTower | null;
@@ -23,9 +20,6 @@
 		onSelect,
 		loading = false,
 		total = 0,
-		page = 1,
-		pageSize = 20,
-		onPageChange,
 		searchQuery = '',
 		onSearch,
 		expandedTowerDetails = null,
@@ -34,8 +28,6 @@
 
 	let localSearchQuery = $state(searchQuery);
 	let searchTimeout: ReturnType<typeof setTimeout>;
-
-	const totalPages = $derived(Math.ceil(total / pageSize));
 
 	// Debounced search
 	function handleSearchInput() {
@@ -116,12 +108,25 @@
 
 	function getCarrierStyle(carrier: string | undefined): { bg: string; text: string } {
 		if (!carrier) return { bg: '#3f3f46', text: '#a1a1aa' };
+		// Special case for Portfolio
+		if (carrier === 'Portfolio') {
+			return { bg: '#8b5cf6', text: 'white' }; // Purple for portfolio
+		}
 		for (const [key, style] of Object.entries(CARRIER_COLORS)) {
 			if (carrier.toLowerCase().includes(key.toLowerCase())) {
 				return style;
 			}
 		}
 		return { bg: '#3f3f46', text: '#e4e4e7' };
+	}
+
+	// Get the display carrier label - shows "Portfolio" for Oncor entities
+	function getCarrierLabel(tower: TowerSearchDocument): string | undefined {
+		// If entity name is Oncor, show "Portfolio" instead of carrier
+		if (tower.entity_name?.toLowerCase().includes('oncor')) {
+			return 'Portfolio';
+		}
+		return tower.carrier;
 	}
 
 	function formatPhone(phone: string | undefined): string {
@@ -185,8 +190,19 @@
 	<div class="list-content">
 		{#if loading}
 			<div class="loading-state">
-				<div class="spinner"></div>
-				<span>Searching...</span>
+				<div class="loading-spinner-wrapper">
+					<div class="spinner"></div>
+				</div>
+				<span class="loading-text">Loading towers...</span>
+				<div class="loading-skeleton">
+					{#each Array(5) as _}
+						<div class="skeleton-item">
+							<div class="skeleton-badge"></div>
+							<div class="skeleton-line wide"></div>
+							<div class="skeleton-line narrow"></div>
+						</div>
+					{/each}
+				</div>
 			</div>
 		{:else if towers.length === 0}
 			<div class="empty-state">
@@ -208,13 +224,14 @@
 						onclick={() => onSelect(tower)}
 					>
 						<div class="tower-main">
-							{#if tower.carrier}
-								{@const carrierStyle = getCarrierStyle(tower.carrier)}
+							{#if getCarrierLabel(tower)}
+								{@const carrierLabel = getCarrierLabel(tower)}
+								{@const carrierStyle = getCarrierStyle(carrierLabel)}
 								<span
 									class="carrier-badge"
 									style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
 								>
-									{tower.carrier}
+									{carrierLabel}
 								</span>
 							{/if}
 							<div class="tower-address">{formatAddress(tower)}</div>
@@ -413,31 +430,6 @@
 		{/if}
 	</div>
 
-	{#if totalPages > 1}
-		<div class="pagination">
-			<button
-				class="page-btn"
-				disabled={page <= 1}
-				onclick={() => onPageChange?.(page - 1)}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="m15 18-6-6 6-6"/>
-				</svg>
-			</button>
-			<span class="page-info">
-				Page {page} of {totalPages}
-			</span>
-			<button
-				class="page-btn"
-				disabled={page >= totalPages}
-				onclick={() => onPageChange?.(page + 1)}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="m9 18 6-6-6-6"/>
-				</svg>
-			</button>
-		</div>
-	{/if}
 </div>
 
 <style>
@@ -516,7 +508,76 @@
 		overflow-y: auto;
 	}
 
-	.loading-state,
+	.loading-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 1.5rem 1rem;
+		color: #71717a;
+		gap: 0.75rem;
+	}
+
+	.loading-spinner-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem;
+	}
+
+	.loading-text {
+		font-size: 0.8125rem;
+		color: #a1a1aa;
+		font-weight: 500;
+	}
+
+	.loading-skeleton {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.skeleton-item {
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid #27273a;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.skeleton-badge {
+		width: 60px;
+		height: 20px;
+		background: linear-gradient(90deg, #27273a 25%, #3b3b50 50%, #27273a 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.5s infinite;
+		border-radius: 0.25rem;
+	}
+
+	.skeleton-line {
+		height: 12px;
+		background: linear-gradient(90deg, #27273a 25%, #3b3b50 50%, #27273a 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.5s infinite;
+		border-radius: 0.25rem;
+	}
+
+	.skeleton-line.wide {
+		width: 80%;
+	}
+
+	.skeleton-line.narrow {
+		width: 50%;
+	}
+
+	@keyframes shimmer {
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
+	}
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -840,45 +901,5 @@
 		color: white;
 		border-radius: 0.125rem;
 		margin-left: 0.25rem;
-	}
-
-	.pagination {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
-		padding: 0.75rem;
-		border-top: 1px solid #3b3b50;
-		background-color: #27273a;
-	}
-
-	.page-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
-		border-radius: 0.375rem;
-		color: #a1a1aa;
-		cursor: pointer;
-		transition: all 0.15s;
-	}
-
-	.page-btn:hover:not(:disabled) {
-		background-color: #27273a;
-		color: #f4f4f5;
-		border-color: #f4f4f5;
-	}
-
-	.page-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.page-info {
-		font-size: 0.75rem;
-		color: #71717a;
 	}
 </style>

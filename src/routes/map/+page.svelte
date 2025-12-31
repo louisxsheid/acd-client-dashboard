@@ -9,17 +9,14 @@
 
 	// State
 	let searchQuery = $state('');
-	let allTowers = $state<TowerSearchDocument[]>([]); // All towers for the map
-	let listTowers = $state<TowerSearchDocument[]>([]); // Paginated towers for the list
+	let allTowers = $state<TowerSearchDocument[]>([]); // All towers for the map and list
 	let selectedTower = $state<TowerSearchDocument | null>(null);
 	let selectedTowerDetails = $state<CompanyTower | null>(null);
 	let loading = $state(false);
 	let listLoading = $state(false);
 	let detailsLoading = $state(false);
-	let page = $state(1);
 	let total = $state(0);
 
-	const pageSize = 20;
 	const companyId = data.session?.user?.companyId;
 
 	// Initial view state
@@ -46,7 +43,6 @@
 		if (!companyId) return;
 
 		searchQuery = query;
-		page = 1;
 		listLoading = true;
 
 		// Clear selection when searching
@@ -54,34 +50,26 @@
 		selectedTowerDetails = null;
 
 		try {
-			// Load ALL matching towers for the map (high limit)
+			// Load ALL matching towers for the map and list
 			const response = await fetch('/api/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: query || '*',
 					type: 'towers',
-					limit: 10000, // Get all matching for map
+					limit: 10000, // Get all matching towers
 					offset: 0
 				})
 			});
 
 			const result = await response.json();
-			allTowers = result.hits || []; // Update map towers with search results
+			allTowers = result.hits || [];
 			total = result.total || 0;
-			listTowers = allTowers.slice(0, pageSize); // First page for list
 		} catch (err) {
 			console.error('Search failed:', err);
 		} finally {
 			listLoading = false;
 		}
-	}
-
-	function handlePageChange(newPage: number) {
-		page = newPage;
-		// Paginate from already-loaded allTowers (no network request needed)
-		const offset = (newPage - 1) * pageSize;
-		listTowers = allTowers.slice(offset, offset + pageSize);
 	}
 
 	async function handleTowerSelect(tower: TowerSearchDocument) {
@@ -159,14 +147,14 @@
 
 		loading = true;
 		try {
-			// Load ALL towers for the map (no pagination limit)
+			// Load ALL towers for the map and list
 			const allTowersResponse = await fetch('/api/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: '*',
 					type: 'towers',
-					limit: 10000, // High limit to get all towers for map
+					limit: 10000, // Get all towers
 					offset: 0
 				})
 			});
@@ -174,9 +162,6 @@
 			const allResult = await allTowersResponse.json();
 			allTowers = allResult.hits || [];
 			total = allResult.total || 0;
-
-			// Also load first page for the list
-			listTowers = allTowers.slice(0, pageSize);
 		} catch (err) {
 			console.error('Failed to load initial towers:', err);
 		} finally {
@@ -193,14 +178,11 @@
 	<div class="main-content">
 		<aside class="tower-sidebar">
 			<TowerList
-				towers={listTowers}
+				towers={allTowers}
 				selectedTowerId={selectedTower?.id ?? null}
 				onSelect={handleTowerSelect}
-				loading={listLoading}
+				loading={listLoading || loading}
 				{total}
-				{page}
-				{pageSize}
-				onPageChange={handlePageChange}
 				{searchQuery}
 				onSearch={handleSearch}
 				expandedTowerDetails={selectedTowerDetails}
