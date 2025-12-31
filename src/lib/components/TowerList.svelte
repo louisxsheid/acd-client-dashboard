@@ -236,6 +236,19 @@
 	function isExpanded(tower: TowerSearchDocument): boolean {
 		return selectedTowerId === tower.id;
 	}
+
+	// Scroll to selected tower when selectedTowerId changes
+	$effect(() => {
+		if (selectedTowerId !== null) {
+			// Small delay to ensure DOM is updated
+			setTimeout(() => {
+				const element = document.querySelector(`[data-tower-id="${selectedTowerId}"]`);
+				if (element) {
+					element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				}
+			}, 50);
+		}
+	});
 </script>
 
 <div class="tower-list">
@@ -362,7 +375,7 @@
 			{#each filteredTowers() as tower (tower.id)}
 				{@const expanded = isExpanded(tower)}
 				{@const details = expanded ? expandedTowerDetails : null}
-				<div class="tower-item-wrapper" class:expanded>
+				<div class="tower-item-wrapper" class:expanded data-tower-id={tower.id}>
 					<button
 						class="tower-item"
 						class:selected={expanded}
