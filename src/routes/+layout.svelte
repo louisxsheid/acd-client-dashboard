@@ -95,7 +95,7 @@
 									<span class="dropdown-company">{session.user.companyName}</span>
 								</div>
 								<div class="dropdown-divider"></div>
-								<form method="POST" action="/auth/signout">
+								<form method="POST" action="/api/auth/signout">
 									<button type="submit" class="dropdown-signout">
 										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 											<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -154,7 +154,7 @@
 							Analytics
 						</a>
 					</div>
-					<form method="POST" action="/auth/signout" class="mobile-signout">
+					<form method="POST" action="/api/auth/signout" class="mobile-signout">
 						<button type="submit" class="signout-btn-mobile">
 							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
