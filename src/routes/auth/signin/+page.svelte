@@ -18,7 +18,10 @@
 			const result = await signIn('credentials', {
 				email,
 				password,
-				redirect: false
+				redirect: false,
+				callbackUrl: redirectUrl
+			}, {
+				basePath: '/api/auth'
 			});
 
 			if (result?.error) {

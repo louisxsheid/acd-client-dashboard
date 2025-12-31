@@ -26,7 +26,7 @@
 	}
 
 	async function handleSignOut() {
-		await signOut({ callbackUrl: '/auth/signin' });
+		await signOut({ callbackUrl: '/auth/signin' }, { basePath: '/api/auth' });
 	}
 
 </script>

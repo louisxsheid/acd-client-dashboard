@@ -1,18 +1,101 @@
-import { handle as authHandle } from './auth';
+import { SvelteKitAuth } from '@auth/sveltekit';
+import Credentials from '@auth/sveltekit/providers/credentials';
+import bcrypt from 'bcrypt';
+import { getUserByEmail, updateUserLastLogin } from '$lib/server/db';
+import { env } from '$env/dynamic/private';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+
+// Auth.js configuration with explicit basePath
+const { handle: authHandle } = SvelteKitAuth({
+	basePath: '/api/auth',
+	secret: env.AUTH_SECRET,
+	trustHost: true,
+	providers: [
+		Credentials({
+			name: 'credentials',
+			credentials: {
+				email: { label: 'Email', type: 'email' },
+				password: { label: 'Password', type: 'password' }
+			},
+			async authorize(credentials) {
+				if (!credentials?.email || !credentials?.password) {
+					return null;
+				}
+
+				const email = credentials.email as string;
+				const password = credentials.password as string;
+
+				try {
+					const user = await getUserByEmail(email);
+
+					if (!user) {
+						return null;
+					}
+
+					const isValidPassword = await bcrypt.compare(password, user.password_hash);
+
+					if (!isValidPassword) {
+						return null;
+					}
+
+					await updateUserLastLogin(user.id);
+
+					return {
+						id: user.id,
+						email: user.email,
+						name: user.name,
+						role: user.role,
+						companyId: user.company_id,
+						companyName: user.company_name
+					};
+				} catch (error) {
+					console.error('Auth error:', error);
+					return null;
+				}
+			}
+		})
+	],
+	session: {
+		strategy: 'jwt',
+		maxAge: 30 * 24 * 60 * 60
+	},
+	callbacks: {
+		async jwt({ token, user }) {
+			if (user) {
+				token.id = user.id;
+				token.email = user.email;
+				token.name = user.name;
+				token.role = (user as any).role;
+				token.companyId = (user as any).companyId;
+				token.companyName = (user as any).companyName;
+			}
+			return token;
+		},
+		async session({ session, token }) {
+			if (token && session.user) {
+				session.user.id = token.id as string;
+				session.user.email = token.email as string;
+				session.user.name = token.name as string | null;
+				(session.user as any).role = token.role;
+				(session.user as any).companyId = token.companyId;
+				(session.user as any).companyName = token.companyName;
+			}
+			return session;
+		}
+	},
+	// Don't set pages - we handle our own signin/signup pages
+	// Auth.js will use its basePath for callback handling
+});
 
 // Routes that require authentication
 const protectedRoutes = ['/map', '/analytics', '/settings', '/api-keys'];
 
-// Routes that should redirect to /map if already authenticated (exact matches only)
-const authPages = ['/auth/signin', '/auth/signup'];
-
 const protectionHandle: Handle = async ({ event, resolve }) => {
 	const pathname = event.url.pathname;
 
-	// Skip Auth.js internal routes - let authHandle process them
-	if (pathname.startsWith('/auth/') && !authPages.includes(pathname)) {
+	// Let Auth.js handle its API routes
+	if (pathname.startsWith('/api/auth')) {
 		return resolve(event);
 	}
 
@@ -37,7 +120,7 @@ const protectionHandle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Redirect authenticated users away from signin/signup pages
-	if (authPages.includes(pathname)) {
+	if (pathname === '/auth/signin' || pathname === '/auth/signup') {
 		if (session?.user) {
 			throw redirect(303, '/map');
 		}
