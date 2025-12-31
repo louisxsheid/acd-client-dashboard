@@ -215,13 +215,17 @@
 		deck.setProps({ layers });
 	}
 
-	// React to data changes
+	// React to data changes - create a unique key from tower IDs to detect array changes
 	$effect(() => {
-		towers;
-		selectedTowerId;
-		hoveredTowerId;
-		currentZoom;
-		updateLayers();
+		// Create a fingerprint of the towers array to detect changes
+		const towersKey = towers.map(t => t.id).join(',');
+		const _selectedId = selectedTowerId;
+		const _hoveredId = hoveredTowerId;
+		const _zoom = currentZoom;
+		// Use towersKey in closure to ensure effect re-runs when towers change
+		if (towersKey !== undefined) {
+			updateLayers();
+		}
 	});
 
 	// Fly to selected tower with more zoom
