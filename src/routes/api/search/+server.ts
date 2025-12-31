@@ -30,6 +30,11 @@ const SEARCH_COMPANY_TOWERS = gql`
 				longitude
 				tower_type
 				endc_available
+				tower_providers {
+					provider {
+						name
+					}
+				}
 				tower_site {
 					address
 					city
@@ -78,6 +83,11 @@ const GET_ALL_COMPANY_TOWERS = gql`
 				longitude
 				tower_type
 				endc_available
+				tower_providers {
+					provider {
+						name
+					}
+				}
 				tower_site {
 					address
 					city
@@ -111,23 +121,33 @@ interface TowerHit {
 	zip_code: string | null;
 	carrier: string | null;
 	entity_name: string | null;
+	provider_names: string[];
+	provider_count: number;
 }
 
 function transformTowerHits(companyTowers: any[], companyId: string): TowerHit[] {
-	return companyTowers.map((ct) => ({
-		id: ct.tower.id,
-		latitude: ct.tower.latitude,
-		longitude: ct.tower.longitude,
-		tower_type: ct.tower.tower_type || 'MACRO',
-		endc_available: ct.tower.endc_available || false,
-		access_states: { [companyId]: ct.access_state },
-		address: ct.tower.tower_site?.address || null,
-		city: ct.tower.tower_site?.city || null,
-		state: ct.tower.tower_site?.state || null,
-		zip_code: ct.tower.tower_site?.zip_code || null,
-		carrier: ct.tower.tower_site?.carrier || null,
-		entity_name: ct.tower.tower_site?.entity?.name || null
-	}));
+	return companyTowers.map((ct) => {
+		const providerNames = (ct.tower.tower_providers || [])
+			.map((tp: any) => tp.provider?.name)
+			.filter(Boolean) as string[];
+
+		return {
+			id: ct.tower.id,
+			latitude: ct.tower.latitude,
+			longitude: ct.tower.longitude,
+			tower_type: ct.tower.tower_type || 'MACRO',
+			endc_available: ct.tower.endc_available || false,
+			access_states: { [companyId]: ct.access_state },
+			address: ct.tower.tower_site?.address || null,
+			city: ct.tower.tower_site?.city || null,
+			state: ct.tower.tower_site?.state || null,
+			zip_code: ct.tower.tower_site?.zip_code || null,
+			carrier: ct.tower.tower_site?.carrier || null,
+			entity_name: ct.tower.tower_site?.entity?.name || null,
+			provider_names: providerNames,
+			provider_count: providerNames.length
+		};
+	});
 }
 
 export const POST: RequestHandler = async ({ request, locals }) => {
