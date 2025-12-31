@@ -83,18 +83,32 @@ const { handle: authHandle } = SvelteKitAuth({
 			}
 			return session;
 		}
-	},
-	// Don't set pages - we handle our own signin/signup pages
-	// Auth.js will use its basePath for callback handling
+	}
 });
 
 // Routes that require authentication
 const protectedRoutes = ['/map', '/analytics', '/settings', '/api-keys'];
 
+// Custom pages that should NOT be handled by Auth.js
+const customAuthPages = ['/auth/signin', '/auth/signup'];
+
+// Wrapper to skip Auth.js for our custom auth pages
+const wrappedAuthHandle: Handle = async ({ event, resolve }) => {
+	const pathname = event.url.pathname;
+
+	// Skip Auth.js for our custom signin/signup pages - let SvelteKit render them
+	if (customAuthPages.includes(pathname)) {
+		return resolve(event);
+	}
+
+	// Let Auth.js handle everything else (including /api/auth/*)
+	return authHandle({ event, resolve });
+};
+
 const protectionHandle: Handle = async ({ event, resolve }) => {
 	const pathname = event.url.pathname;
 
-	// Let Auth.js handle its API routes
+	// Skip protection logic for Auth.js API routes
 	if (pathname.startsWith('/api/auth')) {
 		return resolve(event);
 	}
@@ -120,7 +134,7 @@ const protectionHandle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Redirect authenticated users away from signin/signup pages
-	if (pathname === '/auth/signin' || pathname === '/auth/signup') {
+	if (customAuthPages.includes(pathname)) {
 		if (session?.user) {
 			throw redirect(303, '/map');
 		}
@@ -129,4 +143,4 @@ const protectionHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle = sequence(authHandle, protectionHandle);
+export const handle = sequence(wrappedAuthHandle, protectionHandle);
