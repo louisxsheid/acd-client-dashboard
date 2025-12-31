@@ -2,11 +2,11 @@ import { SvelteKitAuth } from '@auth/sveltekit';
 import Credentials from '@auth/sveltekit/providers/credentials';
 import bcrypt from 'bcrypt';
 import { getUserByEmail, updateUserLastLogin, createSession, getSessionByToken, deleteSession } from '$lib/server/db';
-import { AUTH_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { Handle } from '@sveltejs/kit';
 
 export const { handle, signIn, signOut } = SvelteKitAuth({
-	secret: AUTH_SECRET,
+	secret: env.AUTH_SECRET,
 	trustHost: true,
 	providers: [
 		Credentials({

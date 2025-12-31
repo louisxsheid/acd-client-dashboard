@@ -1,8 +1,13 @@
-import { HASURA_GRAPHQL_ENDPOINT, HASURA_ADMIN_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { print, type DocumentNode } from 'graphql';
 
-const endpoint = HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
-const adminSecret = HASURA_ADMIN_SECRET || 'devsecret';
+function getEndpoint() {
+	return env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
+}
+
+function getAdminSecret() {
+	return env.HASURA_ADMIN_SECRET || 'devsecret';
+}
 
 interface GraphQLResponse<T = any> {
 	data?: T;
@@ -20,11 +25,11 @@ async function executeQuery<T = any>(
 	variables?: Record<string, any>
 ): Promise<QueryResult<T>> {
 	try {
-		const response = await fetch(endpoint, {
+		const response = await fetch(getEndpoint(), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'x-hasura-admin-secret': adminSecret
+				'x-hasura-admin-secret': getAdminSecret()
 			},
 			body: JSON.stringify({
 				query,

@@ -1,17 +1,22 @@
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import { HASURA_GRAPHQL_ENDPOINT, HASURA_ADMIN_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { getCarrierColorByName } from '$lib/carriers';
 
-const endpoint = HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
-const adminSecret = HASURA_ADMIN_SECRET || 'devsecret';
+function getEndpoint() {
+	return env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql';
+}
+
+function getAdminSecret() {
+	return env.HASURA_ADMIN_SECRET || 'devsecret';
+}
 
 async function query(gql: string, variables: Record<string, any> = {}) {
-	const response = await fetch(endpoint, {
+	const response = await fetch(getEndpoint(), {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'x-hasura-admin-secret': adminSecret
+			'x-hasura-admin-secret': getAdminSecret()
 		},
 		body: JSON.stringify({ query: gql, variables })
 	});

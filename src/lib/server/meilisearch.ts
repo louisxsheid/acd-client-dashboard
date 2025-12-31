@@ -1,8 +1,13 @@
-import { MEILISEARCH_HOST, MEILISEARCH_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 // Meilisearch client for blazing fast search
-const MEILI_URL = MEILISEARCH_HOST || 'http://localhost:7700';
-const MEILI_KEY = MEILISEARCH_API_KEY || '';
+function getMeiliUrl() {
+	return env.MEILISEARCH_HOST || 'http://localhost:7700';
+}
+
+function getMeiliKey() {
+	return env.MEILISEARCH_API_KEY || '';
+}
 
 interface MeiliSearchParams {
 	q: string;
@@ -31,13 +36,14 @@ async function meiliRequest<T>(
 	endpoint: string,
 	options: RequestInit = {}
 ): Promise<T> {
-	const url = `${MEILI_URL}${endpoint}`;
+	const url = `${getMeiliUrl()}${endpoint}`;
+	const apiKey = getMeiliKey();
 
 	const response = await fetch(url, {
 		...options,
 		headers: {
 			'Content-Type': 'application/json',
-			...(MEILI_KEY ? { 'Authorization': `Bearer ${MEILI_KEY}` } : {}),
+			...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
 			...options.headers
 		}
 	});
