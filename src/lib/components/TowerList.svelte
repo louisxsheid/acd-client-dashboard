@@ -527,45 +527,6 @@
 										{/each}
 									</div>
 								{/if}
-
-								<!-- Carriers/Tenants Section -->
-								{#if providers.length > 0}
-									<div class="detail-section">
-										<h4>Carriers ({providers.length})</h4>
-										<div class="carriers-list">
-											{#each providers as tp}
-												{@const providerStyle = getCarrierStyle(tp.provider?.name)}
-												<div class="carrier-item">
-													<span
-														class="carrier-badge"
-														style="background-color: {providerStyle.bg}; color: {providerStyle.text}"
-													>
-														{tp.provider?.name || 'Unknown'}
-													</span>
-													<div class="carrier-meta">
-														{#if tp.rat}
-															<span class="carrier-tech">{tp.rat}</span>
-														{/if}
-														{#if tp.endc_available}
-															<span class="carrier-endc">EN-DC</span>
-														{/if}
-													</div>
-												</div>
-											{/each}
-										</div>
-									</div>
-								{:else if site?.carrier}
-									<!-- Fallback to carrier string if no tower_providers -->
-									<div class="detail-section">
-										<h4>Carrier</h4>
-										<div class="detail-grid">
-											<div class="detail-item">
-												<label>Carrier</label>
-												<span>{site.carrier}</span>
-											</div>
-										</div>
-									</div>
-								{/if}
 							{:else}
 								<div class="details-empty">
 									<span>No additional details available</span>
@@ -1187,45 +1148,4 @@
 		margin-left: 0.25rem;
 	}
 
-	/* Carriers/Tenants List */
-	.carriers-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.carrier-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.5rem;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
-		border-radius: 0.375rem;
-	}
-
-	.carrier-meta {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-	}
-
-	.carrier-tech {
-		font-size: 0.625rem;
-		font-weight: 600;
-		padding: 0.125rem 0.375rem;
-		background-color: #27273a;
-		color: #a1a1aa;
-		border-radius: 0.25rem;
-		text-transform: uppercase;
-	}
-
-	.carrier-endc {
-		font-size: 0.5625rem;
-		font-weight: 600;
-		padding: 0.125rem 0.25rem;
-		background-color: #22c55e;
-		color: white;
-		border-radius: 0.25rem;
-	}
 </style>
