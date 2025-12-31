@@ -9,10 +9,12 @@
 
 	// State
 	let searchQuery = $state('');
-	let towers = $state<TowerSearchDocument[]>([]);
+	let allTowers = $state<TowerSearchDocument[]>([]); // All towers for the map
+	let listTowers = $state<TowerSearchDocument[]>([]); // Paginated towers for the list
 	let selectedTower = $state<TowerSearchDocument | null>(null);
 	let selectedTowerDetails = $state<CompanyTower | null>(null);
 	let loading = $state(false);
+	let listLoading = $state(false);
 	let detailsLoading = $state(false);
 	let page = $state(1);
 	let total = $state(0);
@@ -30,8 +32,8 @@
 
 	// Fit map to all tower points once towers are loaded and map is ready
 	$effect(() => {
-		if (towers.length > 0 && mapComponent && !hasFittedBounds && !loading) {
-			const bounds = calculateBounds(towers);
+		if (allTowers.length > 0 && mapComponent && !hasFittedBounds && !loading) {
+			const bounds = calculateBounds(allTowers);
 			initialBounds = bounds;
 			setTimeout(() => {
 				mapComponent.fitBounds(bounds, 60);
@@ -45,7 +47,7 @@
 
 		searchQuery = query;
 		page = 1;
-		loading = true;
+		listLoading = true;
 
 		// Clear selection when searching
 		selectedTower = null;
@@ -64,12 +66,12 @@
 			});
 
 			const result = await response.json();
-			towers = result.hits || [];
+			listTowers = result.hits || [];
 			total = result.total || 0;
 		} catch (err) {
 			console.error('Search failed:', err);
 		} finally {
-			loading = false;
+			listLoading = false;
 		}
 	}
 
@@ -77,7 +79,7 @@
 		if (!companyId) return;
 
 		page = newPage;
-		loading = true;
+		listLoading = true;
 
 		try {
 			const response = await fetch('/api/search', {
@@ -92,11 +94,11 @@
 			});
 
 			const result = await response.json();
-			towers = result.hits || [];
+			listTowers = result.hits || [];
 		} catch (err) {
 			console.error('Pagination failed:', err);
 		} finally {
-			loading = false;
+			listLoading = false;
 		}
 	}
 
@@ -135,8 +137,8 @@
 	function zoomToAllTowers() {
 		if (!mapComponent) return;
 
-		// Use stored bounds or calculate from current towers
-		const bounds = initialBounds || (towers.length > 0 ? calculateBounds(towers) : null);
+		// Use stored bounds or calculate from all towers
+		const bounds = initialBounds || (allTowers.length > 0 ? calculateBounds(allTowers) : null);
 		if (bounds) {
 			mapComponent.fitBounds(bounds, 60);
 		}
@@ -175,21 +177,24 @@
 
 		loading = true;
 		try {
-			// Load all towers for initial display (with a reasonable limit)
-			const response = await fetch('/api/search', {
+			// Load ALL towers for the map (no pagination limit)
+			const allTowersResponse = await fetch('/api/search', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					query: '*',
 					type: 'towers',
-					limit: 500, // Load up to 500 towers initially for map
+					limit: 10000, // High limit to get all towers for map
 					offset: 0
 				})
 			});
 
-			const result = await response.json();
-			towers = result.hits || [];
-			total = result.total || 0;
+			const allResult = await allTowersResponse.json();
+			allTowers = allResult.hits || [];
+			total = allResult.total || 0;
+
+			// Also load first page for the list
+			listTowers = allTowers.slice(0, pageSize);
 		} catch (err) {
 			console.error('Failed to load initial towers:', err);
 		} finally {
@@ -206,10 +211,10 @@
 	<div class="main-content">
 		<aside class="tower-sidebar">
 			<TowerList
-				{towers}
+				towers={listTowers}
 				selectedTowerId={selectedTower?.id ?? null}
 				onSelect={handleTowerSelect}
-				{loading}
+				loading={listLoading}
 				{total}
 				{page}
 				{pageSize}
@@ -224,7 +229,7 @@
 		<main class="map-section">
 			<ClientDeckGLMap
 				bind:this={mapComponent}
-				{towers}
+				towers={allTowers}
 				selectedTowerId={selectedTower?.id ?? null}
 				onTowerSelect={handleTowerSelect}
 				onDeselectRequest={handleDeselect}
