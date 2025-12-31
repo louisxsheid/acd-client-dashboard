@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { fullSync } from '$lib/server/sync-meilisearch';
 
-const ADMIN_SECRET = env.HASURA_ADMIN_SECRET || 'devsecret';
+const ADMIN_SECRET = env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET || 'devsecret';
 
 export const POST: RequestHandler = async ({ request }) => {
 	// Simple secret-based auth for admin endpoints
