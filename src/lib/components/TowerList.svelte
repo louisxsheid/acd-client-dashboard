@@ -3,6 +3,8 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { TowerSearchDocument } from '$lib/server/meilisearch';
 	import type { CompanyTower } from '$lib/types';
+	import ContactSalesModal from './ContactSalesModal.svelte';
+	import LockedSection from './LockedSection.svelte';
 
 	interface Props {
 		towers: TowerSearchDocument[];
@@ -30,12 +32,21 @@
 		detailsLoading = false
 	}: Props = $props();
 
-	let localSearchQuery = $state(searchQuery);
+	let localSearchQuery = $state('');
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let showFilters = $state(false);
 	let carrierFilter = $state<string>('');
 	let entityFilter = $state<string>('');
 	let listContentRef: HTMLDivElement;
+	let showContactModal = $state(false);
+
+	function openContactModal() {
+		showContactModal = true;
+	}
+
+	function closeContactModal() {
+		showContactModal = false;
+	}
 
 	// Custom smooth scroll with controllable duration
 	function smoothScrollTo(element: Element, duration: number = 600) {
@@ -502,9 +513,11 @@
 								{@const site = details.tower.tower_site}
 								{@const entity = site?.entity}
 								{@const contacts = entity?.entity_contacts || []}
-								{@const providers = details.tower.tower_providers || []}
+								{@const hasZoningData = site?.zoning || site?.zoning_type || site?.use_code}
+								{@const hasPropertyData = site?.parcel_value || site?.land_value || site?.improvement_value}
+								{@const hasPropertyZoning = hasZoningData || hasPropertyData}
 
-								<!-- Location Section -->
+								<!-- 1. Location Section (Always Visible) -->
 								<div class="detail-section">
 									<h4>Location</h4>
 									<div class="detail-grid">
@@ -525,14 +538,17 @@
 											<span>{tower.latitude.toFixed(6)}, {tower.longitude.toFixed(6)}</span>
 										</div>
 									</div>
-									{#if site?.google_maps_url}
-										<a href={site.google_maps_url} target="_blank" rel="noopener noreferrer" class="external-link">
-											Open in Google Maps
-										</a>
-									{/if}
+									<a href="https://www.google.com/maps?q={tower.latitude},{tower.longitude}" target="_blank" rel="noopener noreferrer" class="map-link">
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+											<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+											<polyline points="15 3 21 3 21 9"/>
+											<line x1="10" x2="21" y1="14" y2="3"/>
+										</svg>
+										View in Google Maps
+									</a>
 								</div>
 
-								<!-- Site Info Section -->
+								<!-- 2. Site Details Section (Always Visible) -->
 								<div class="detail-section">
 									<h4>Site Details</h4>
 									<div class="detail-grid">
@@ -565,93 +581,112 @@
 											<p>{site.remarks}</p>
 										</div>
 									{/if}
-									{#if site?.imagery_url}
-										<a href={site.imagery_url} target="_blank" rel="noopener noreferrer" class="external-link">
-											View Imagery
-										</a>
-									{/if}
 								</div>
 
-								<!-- Zoning Section -->
-								{#if site?.zoning || site?.zoning_type || site?.use_code}
+								<!-- 3. Seller Intelligence Section (Always Locked) -->
+								<div class="detail-section">
+									<LockedSection
+										title="Seller Intelligence"
+										description="Background information on the seller including owner age, business health indicators, judgments, liens, and more."
+										isPremium={true}
+										onUnlock={openContactModal}
+									/>
+								</div>
+
+								<!-- 4. RF / Technical Section (Always Locked - RF data not yet populated) -->
+								<div class="detail-section">
+									<LockedSection
+										title="RF / Technical"
+										description="Technical site data including spectrum allocation, radio technology, band details, and more."
+										onUnlock={openContactModal}
+									/>
+								</div>
+
+								<!-- 5. Property & Zoning Section (Lockable) -->
+								{#if hasPropertyZoning}
 									<div class="detail-section">
-										<h4>Zoning</h4>
+										<h4>Property & Zoning</h4>
 										<div class="detail-grid">
-											{#if site.use_code}
+											{#if site?.use_code}
 												<div class="detail-item">
 													<label>Use Code</label>
 													<span>{site.use_code}</span>
 												</div>
 											{/if}
-											{#if site.zoning}
+											{#if site?.zoning}
 												<div class="detail-item">
 													<label>Zoning</label>
 													<span>{site.zoning}</span>
 												</div>
 											{/if}
-											{#if site.zoning_type}
+											{#if site?.zoning_type}
 												<div class="detail-item">
 													<label>Type</label>
 													<span>{site.zoning_type}</span>
 												</div>
 											{/if}
-											{#if site.zoning_subtype}
+											{#if site?.zoning_subtype}
 												<div class="detail-item">
 													<label>Subtype</label>
 													<span>{site.zoning_subtype}</span>
 												</div>
 											{/if}
-											{#if site.zoning_description}
+											{#if site?.parcel_value}
+												<div class="detail-item">
+													<label>Parcel Value</label>
+													<span class="value-highlight">${site.parcel_value.toLocaleString()}</span>
+												</div>
+											{/if}
+											{#if site?.land_value}
+												<div class="detail-item">
+													<label>Land Value</label>
+													<span>${site.land_value.toLocaleString()}</span>
+												</div>
+											{/if}
+											{#if site?.improvement_value}
+												<div class="detail-item">
+													<label>Improvement Value</label>
+													<span>${site.improvement_value.toLocaleString()}</span>
+												</div>
+											{/if}
+											{#if site?.zoning_description}
 												<div class="detail-item full">
 													<label>Description</label>
 													<span>{site.zoning_description}</span>
 												</div>
 											{/if}
 										</div>
-										{#if site.zoning_code_link}
+										{#if site?.zoning_code_link}
 											<a href={site.zoning_code_link} target="_blank" rel="noopener noreferrer" class="external-link">
 												View Zoning Code
 											</a>
 										{/if}
 									</div>
-								{/if}
-
-								<!-- Property Values Section -->
-								{#if site?.parcel_value || site?.land_value || site?.improvement_value}
+								{:else}
 									<div class="detail-section">
-										<h4>Property Values</h4>
-										<div class="detail-grid">
-											{#if site.parcel_value}
-												<div class="detail-item">
-													<label>Parcel Value</label>
-													<span class="value-highlight">${site.parcel_value.toLocaleString()}</span>
-												</div>
-											{/if}
-											{#if site.land_value}
-												<div class="detail-item">
-													<label>Land Value</label>
-													<span>${site.land_value.toLocaleString()}</span>
-												</div>
-											{/if}
-											{#if site.improvement_value}
-												<div class="detail-item">
-													<label>Improvement Value</label>
-													<span>${site.improvement_value.toLocaleString()}</span>
-												</div>
-											{/if}
-										</div>
+										<LockedSection
+											title="Property & Zoning"
+											description="Property details including zoning classification, land use codes, valuations, and more."
+											onUnlock={openContactModal}
+										/>
 									</div>
 								{/if}
 
-								<!-- Entity Section -->
+								<!-- 6. Ownership / Entity Section (Lockable) -->
 								{#if entity}
 									<div class="detail-section">
-										<h4>Owner / Entity</h4>
+										<h4>Ownership / Entity</h4>
 										<div class="detail-grid">
 											<div class="detail-item full">
 												<label>Name</label>
 												<span class="entity-value">{entity.name}</span>
 											</div>
+											{#if entity.entity_type}
+												<div class="detail-item">
+													<label>Entity Type</label>
+													<span class="entity-type-badge">{entity.entity_type}</span>
+												</div>
+											{/if}
 											{#if entity.mail_address}
 												<div class="detail-item full">
 													<label>Mailing Address</label>
@@ -660,9 +695,17 @@
 											{/if}
 										</div>
 									</div>
+								{:else}
+									<div class="detail-section">
+										<LockedSection
+											title="Ownership / Entity"
+											description="Ownership information including property owner details, entity type, mailing address, and more."
+											onUnlock={openContactModal}
+										/>
+									</div>
 								{/if}
 
-								<!-- Contacts Section -->
+								<!-- 7. Contacts Section (Lockable) -->
 								{#if contacts.length > 0}
 									<div class="detail-section">
 										<h4>Contacts ({contacts.length})</h4>
@@ -704,6 +747,14 @@
 											</div>
 										{/each}
 									</div>
+								{:else}
+									<div class="detail-section">
+										<LockedSection
+											title="Contacts"
+											description="Decision-maker contact information including phone numbers, email addresses, and more."
+											onUnlock={openContactModal}
+										/>
+									</div>
 								{/if}
 									{:else}
 										<div class="details-empty">
@@ -720,6 +771,8 @@
 	</div>
 
 </div>
+
+<ContactSalesModal open={showContactModal} onClose={closeContactModal} />
 
 <style>
 	.tower-list {
@@ -1286,6 +1339,41 @@
 
 	.external-link:hover {
 		text-decoration: underline;
+	}
+
+	.map-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		margin-top: 0.75rem;
+		padding: 0.5rem 0.75rem;
+		background-color: rgba(94, 177, 247, 0.1);
+		border: 1px solid rgba(94, 177, 247, 0.3);
+		border-radius: 0.375rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+		color: #5EB1F7;
+		text-decoration: none;
+		transition: all 0.15s;
+	}
+
+	.map-link:hover {
+		background-color: rgba(94, 177, 247, 0.2);
+		border-color: #5EB1F7;
+	}
+
+	.map-link svg {
+		flex-shrink: 0;
+	}
+
+	.entity-type-badge {
+		display: inline-block;
+		padding: 0.125rem 0.375rem;
+		background-color: #2d3e52;
+		border: 1px solid #3d4f63;
+		border-radius: 0.25rem;
+		font-size: 0.6875rem;
+		text-transform: capitalize;
 	}
 
 	.remarks {
