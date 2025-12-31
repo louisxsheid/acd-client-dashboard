@@ -28,6 +28,48 @@
 
 	let localSearchQuery = $state(searchQuery);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	let showFilters = $state(false);
+	let carrierFilter = $state<string>('');
+	let entityFilter = $state<string>('');
+
+	// Extract unique carriers and entities from towers for filter dropdowns
+	const uniqueCarriers = $derived(() => {
+		const carriers = new Set<string>();
+		towers.forEach((t) => {
+			const label = getCarrierLabel(t);
+			if (label) carriers.add(label);
+		});
+		return Array.from(carriers).sort();
+	});
+
+	const uniqueEntities = $derived(() => {
+		const entities = new Set<string>();
+		towers.forEach((t) => {
+			if (t.entity_name) entities.add(t.entity_name);
+		});
+		return Array.from(entities).sort();
+	});
+
+	// Filter towers based on selected filters
+	const filteredTowers = $derived(() => {
+		return towers.filter((tower) => {
+			if (carrierFilter) {
+				const label = getCarrierLabel(tower);
+				if (label !== carrierFilter) return false;
+			}
+			if (entityFilter) {
+				if (tower.entity_name !== entityFilter) return false;
+			}
+			return true;
+		});
+	});
+
+	const activeFilterCount = $derived((carrierFilter ? 1 : 0) + (entityFilter ? 1 : 0));
+
+	function clearFilters() {
+		carrierFilter = '';
+		entityFilter = '';
+	}
 
 	// Debounced search
 	function handleSearchInput() {
@@ -138,15 +180,6 @@
 		return phone;
 	}
 
-	function formatDate(dateStr: string | undefined): string {
-		if (!dateStr) return 'N/A';
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
-
 	// Check if this tower is expanded (selected)
 	function isExpanded(tower: TowerSearchDocument): boolean {
 		return selectedTowerId === tower.id;
@@ -156,31 +189,73 @@
 <div class="tower-list">
 	<!-- Search in list header -->
 	<div class="list-header">
-		<div class="search-wrapper">
-			<svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="11" cy="11" r="8"/>
-				<path d="m21 21-4.3-4.3"/>
-			</svg>
-			<input
-				type="text"
-				bind:value={localSearchQuery}
-				oninput={handleSearchInput}
-				onkeydown={handleSearchKeydown}
-				placeholder="Search address, carrier, entity..."
-				class="search-input"
-			/>
-			{#if localSearchQuery}
-				<button class="clear-btn" onclick={clearSearch} aria-label="Clear search">
-					<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M18 6 6 18"/>
-						<path d="m6 6 12 12"/>
-					</svg>
-				</button>
-			{/if}
+		<div class="search-row">
+			<div class="search-wrapper">
+				<svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="11" cy="11" r="8"/>
+					<path d="m21 21-4.3-4.3"/>
+				</svg>
+				<input
+					type="text"
+					bind:value={localSearchQuery}
+					oninput={handleSearchInput}
+					onkeydown={handleSearchKeydown}
+					placeholder="Search..."
+					class="search-input"
+				/>
+				{#if localSearchQuery}
+					<button class="clear-btn" onclick={clearSearch} aria-label="Clear search">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M18 6 6 18"/>
+							<path d="m6 6 12 12"/>
+						</svg>
+					</button>
+				{/if}
+			</div>
+			<button
+				class="filter-toggle"
+				class:active={showFilters || activeFilterCount > 0}
+				onclick={() => showFilters = !showFilters}
+				aria-label="Toggle filters"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+				</svg>
+				{#if activeFilterCount > 0}
+					<span class="filter-badge">{activeFilterCount}</span>
+				{/if}
+			</button>
 		</div>
+
+		{#if showFilters}
+			<div class="filter-panel">
+				<div class="filter-row">
+					<select bind:value={carrierFilter} class="filter-select">
+						<option value="">All Carriers</option>
+						{#each uniqueCarriers() as carrier}
+							<option value={carrier}>{carrier}</option>
+						{/each}
+					</select>
+					<select bind:value={entityFilter} class="filter-select">
+						<option value="">All Entities</option>
+						{#each uniqueEntities() as entity}
+							<option value={entity}>{entity}</option>
+						{/each}
+					</select>
+				</div>
+				{#if activeFilterCount > 0}
+					<button class="clear-filters-btn" onclick={clearFilters}>
+						Clear filters
+					</button>
+				{/if}
+			</div>
+		{/if}
+
 		<span class="count">
 			{#if loading}
 				Searching...
+			{:else if activeFilterCount > 0}
+				{filteredTowers().length.toLocaleString()} of {total.toLocaleString()} tower{total !== 1 ? 's' : ''}
 			{:else}
 				{total.toLocaleString()} tower{total !== 1 ? 's' : ''}
 			{/if}
@@ -204,17 +279,17 @@
 					{/each}
 				</div>
 			</div>
-		{:else if towers.length === 0}
+		{:else if filteredTowers().length === 0}
 			<div class="empty-state">
 				<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 					<circle cx="11" cy="11" r="8"/>
 					<path d="m21 21-4.3-4.3"/>
 				</svg>
 				<p>No towers found</p>
-				<span>Try adjusting your search</span>
+				<span>{activeFilterCount > 0 ? 'Try adjusting your filters' : 'Try adjusting your search'}</span>
 			</div>
 		{:else}
-			{#each towers as tower (tower.id)}
+			{#each filteredTowers() as tower (tower.id)}
 				{@const expanded = isExpanded(tower)}
 				{@const details = expanded ? expandedTowerDetails : null}
 				<div class="tower-item-wrapper" class:expanded>
@@ -399,25 +474,17 @@
 								{/if}
 
 								<!-- Technical Section -->
-								<div class="detail-section">
-									<h4>Technical</h4>
-									<div class="detail-grid">
-										<div class="detail-item">
-											<label>First Seen</label>
-											<span>{formatDate(details.tower.first_seen_at)}</span>
-										</div>
-										<div class="detail-item">
-											<label>Last Seen</label>
-											<span>{formatDate(details.tower.last_seen_at)}</span>
-										</div>
-										{#if details.tower.provider_count}
+								{#if details.tower.provider_count}
+									<div class="detail-section">
+										<h4>Technical</h4>
+										<div class="detail-grid">
 											<div class="detail-item">
 												<label>Providers</label>
 												<span>{details.tower.provider_count}</span>
 											</div>
-										{/if}
+										</div>
 									</div>
-								</div>
+								{/if}
 							{:else}
 								<div class="details-empty">
 									<span>No additional details available</span>
@@ -450,10 +517,104 @@
 		gap: 0.5rem;
 	}
 
+	.search-row {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
 	.search-wrapper {
 		position: relative;
 		display: flex;
 		align-items: center;
+		flex: 1;
+	}
+
+	.filter-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		background-color: #1e1e2e;
+		border: 1px solid #3b3b50;
+		border-radius: 0.5rem;
+		color: #71717a;
+		cursor: pointer;
+		transition: all 0.15s;
+		position: relative;
+		flex-shrink: 0;
+	}
+
+	.filter-toggle:hover {
+		border-color: #52525b;
+		color: #a1a1aa;
+	}
+
+	.filter-toggle.active {
+		background-color: rgba(59, 130, 246, 0.1);
+		border-color: #3b82f6;
+		color: #3b82f6;
+	}
+
+	.filter-badge {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		background-color: #3b82f6;
+		color: white;
+		font-size: 0.625rem;
+		font-weight: 600;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.filter-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid #3b3b50;
+		margin-top: 0.25rem;
+	}
+
+	.filter-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.filter-select {
+		flex: 1;
+		padding: 0.5rem;
+		background-color: #1e1e2e;
+		border: 1px solid #3b3b50;
+		border-radius: 0.375rem;
+		color: #f4f4f5;
+		font-size: 0.75rem;
+		cursor: pointer;
+	}
+
+	.filter-select:focus {
+		outline: none;
+		border-color: #3b82f6;
+	}
+
+	.clear-filters-btn {
+		padding: 0.375rem 0.75rem;
+		background: none;
+		border: none;
+		color: #3b82f6;
+		font-size: 0.75rem;
+		cursor: pointer;
+		align-self: flex-start;
+	}
+
+	.clear-filters-btn:hover {
+		text-decoration: underline;
 	}
 
 	.search-icon {

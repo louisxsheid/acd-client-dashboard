@@ -35,30 +35,6 @@
 			icon="📡"
 			color="#3b82f6"
 		/>
-		<StatCard
-			title="Tower Sites"
-			value={data.totalSites}
-			icon="📍"
-			color="#8b5cf6"
-		/>
-		<StatCard
-			title="Portfolios"
-			value={data.totalEntities}
-			icon="🏢"
-			color="#22c55e"
-		/>
-		<StatCard
-			title="Carriers"
-			value={data.uniqueCarriers?.length || 0}
-			icon="📱"
-			color="#f59e0b"
-		/>
-		<StatCard
-			title="States"
-			value={data.states?.length || 0}
-			icon="🗺️"
-			color="#ec4899"
-		/>
 	</section>
 
 	<!-- Distribution Charts -->
