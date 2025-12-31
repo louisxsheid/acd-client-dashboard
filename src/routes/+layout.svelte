@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/stores';
-	
+	import { signOut } from '@auth/sveltekit/client';
+
 	let { children, data }: { children: Snippet; data: { session: any } } = $props();
 
 	const session = data.session;
@@ -22,6 +23,10 @@
 
 	function closeUserMenu() {
 		userMenuOpen = false;
+	}
+
+	async function handleSignOut() {
+		await signOut({ callbackUrl: '/auth/signin' });
 	}
 
 </script>
@@ -96,16 +101,14 @@
 									<span class="dropdown-company">{session.user.companyName}</span>
 								</div>
 								<div class="dropdown-divider"></div>
-								<form method="POST" action="/auth/signout">
-									<button type="submit" class="dropdown-signout">
-										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-											<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-											<polyline points="16 17 21 12 16 7"/>
-											<line x1="21" y1="12" x2="9" y2="12"/>
-										</svg>
-										Sign Out
-									</button>
-								</form>
+								<button type="button" class="dropdown-signout" onclick={handleSignOut}>
+									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+										<polyline points="16 17 21 12 16 7"/>
+										<line x1="21" y1="12" x2="9" y2="12"/>
+									</svg>
+									Sign Out
+								</button>
 							</div>
 						{/if}
 					</div>
@@ -155,8 +158,8 @@
 							Analytics
 						</a>
 					</div>
-					<form method="POST" action="/auth/signout" class="mobile-signout">
-						<button type="submit" class="signout-btn-mobile">
+					<div class="mobile-signout">
+						<button type="button" class="signout-btn-mobile" onclick={handleSignOut}>
 							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
 								<polyline points="16 17 21 12 16 7"/>
@@ -164,7 +167,7 @@
 							</svg>
 							Sign Out
 						</button>
-					</form>
+					</div>
 				</div>
 			{/if}
 		</header>
