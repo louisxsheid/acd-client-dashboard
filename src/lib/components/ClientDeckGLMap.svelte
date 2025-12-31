@@ -307,11 +307,18 @@
 						hoveredTowerId = null;
 					}
 				},
-				getTooltip: ({ object }: { object?: TowerSearchDocument }) => {
+				getTooltip: ({ object, x, y }: { object?: TowerSearchDocument; x?: number; y?: number }) => {
 					if (!object) return null;
 
-					// At close zoom, position tooltip at offset point
-					const useOffset = currentZoom >= HOVER_OFFSET_MIN_ZOOM;
+					// Get container dimensions to avoid tooltip going off-screen
+					const containerWidth = container?.clientWidth || 800;
+					const containerHeight = container?.clientHeight || 600;
+					const tooltipWidth = 250;
+					const tooltipHeight = 100;
+
+					// Determine if tooltip should flip based on position
+					const flipX = x && x > containerWidth - tooltipWidth - 50;
+					const flipY = y && y < tooltipHeight + 50;
 
 					return {
 						html: `
@@ -332,7 +339,7 @@
 							border: '1px solid #3b3b50',
 							borderRadius: '6px',
 							boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-							transform: useOffset ? 'translate(20px, -30px)' : undefined
+							transform: `translate(${flipX ? '-110%' : '10px'}, ${flipY ? '10px' : '-100%'})`
 						}
 					};
 				}
