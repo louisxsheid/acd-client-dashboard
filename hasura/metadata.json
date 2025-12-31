@@ -1,0 +1,190 @@
+{
+    "version": 3,
+    "sources": [
+        {
+            "name": "default",
+            "kind": "postgres",
+            "tables": [
+                {
+                    "table": {
+                        "name": "companies",
+                        "schema": "public"
+                    },
+                    "array_relationships": [
+                        {
+                            "name": "company_towers",
+                            "using": {
+                                "foreign_key_constraint_on": {
+                                    "column": "company_id",
+                                    "table": {
+                                        "name": "company_towers",
+                                        "schema": "public"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "company_towers",
+                        "schema": "public"
+                    },
+                    "object_relationships": [
+                        {
+                            "name": "company",
+                            "using": {
+                                "foreign_key_constraint_on": "company_id"
+                            }
+                        },
+                        {
+                            "name": "tower",
+                            "using": {
+                                "foreign_key_constraint_on": "tower_id"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "entities",
+                        "schema": "public"
+                    },
+                    "array_relationships": [
+                        {
+                            "name": "contacts",
+                            "using": {
+                                "foreign_key_constraint_on": {
+                                    "column": "entity_id",
+                                    "table": {
+                                        "name": "entity_contacts",
+                                        "schema": "public"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "entity_contacts",
+                            "using": {
+                                "foreign_key_constraint_on": {
+                                    "column": "entity_id",
+                                    "table": {
+                                        "name": "entity_contacts",
+                                        "schema": "public"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "entity_contacts",
+                        "schema": "public"
+                    }
+                },
+                {
+                    "table": {
+                        "name": "providers",
+                        "schema": "public"
+                    }
+                },
+                {
+                    "table": {
+                        "name": "tower_providers",
+                        "schema": "public"
+                    },
+                    "object_relationships": [
+                        {
+                            "name": "provider",
+                            "using": {
+                                "foreign_key_constraint_on": "provider_id"
+                            }
+                        },
+                        {
+                            "name": "tower",
+                            "using": {
+                                "foreign_key_constraint_on": "tower_id"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "tower_sites",
+                        "schema": "public"
+                    },
+                    "object_relationships": [
+                        {
+                            "name": "entity",
+                            "using": {
+                                "foreign_key_constraint_on": "entity_id"
+                            }
+                        },
+                        {
+                            "name": "tower",
+                            "using": {
+                                "foreign_key_constraint_on": "tower_id"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "towers",
+                        "schema": "public"
+                    },
+                    "object_relationships": [
+                        {
+                            "name": "tower_site",
+                            "using": {
+                                "foreign_key_constraint_on": {
+                                    "column": "tower_id",
+                                    "table": {
+                                        "name": "tower_sites",
+                                        "schema": "public"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "array_relationships": [
+                        {
+                            "name": "tower_providers",
+                            "using": {
+                                "foreign_key_constraint_on": {
+                                    "column": "tower_id",
+                                    "table": {
+                                        "name": "tower_providers",
+                                        "schema": "public"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "table": {
+                        "name": "users",
+                        "schema": "public"
+                    }
+                }
+            ],
+            "configuration": {
+                "connection_info": {
+                    "database_url": {
+                        "from_env": "HASURA_GRAPHQL_DATABASE_URL"
+                    },
+                    "isolation_level": "read-committed",
+                    "pool_settings": {
+                        "connection_lifetime": 600,
+                        "idle_timeout": 180,
+                        "max_connections": 50,
+                        "retries": 1
+                    },
+                    "use_prepared_statements": true
+                }
+            }
+        }
+    ]
+}
