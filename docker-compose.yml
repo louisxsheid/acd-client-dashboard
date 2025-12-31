@@ -1,0 +1,81 @@
+services:
+  # PostgreSQL with PostGIS for client dashboard (on port 5433)
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: acd-client-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: acd_client
+    ports:
+      - "5433:5432"
+    volumes:
+      - client_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d acd_client"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Hasura GraphQL Engine for client dashboard (on port 8081)
+  hasura:
+    image: hasura/graphql-engine:v2.36.0
+    container_name: acd-client-hasura
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgres@postgres:5432/acd_client
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: devsecret
+      HASURA_GRAPHQL_CORS_DOMAIN: "*"
+      HASURA_GRAPHQL_ENABLE_TELEMETRY: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Metadata applier (runs once on startup)
+  hasura-init:
+    image: curlimages/curl:latest
+    container_name: acd-client-hasura-init
+    depends_on:
+      hasura:
+        condition: service_healthy
+    volumes:
+      - ./hasura/metadata.json:/metadata.json:ro
+      - ./hasura/apply-metadata.sh:/apply-metadata.sh:ro
+    environment:
+      HASURA_ENDPOINT: http://hasura:8080
+      HASURA_ADMIN_SECRET: devsecret
+    command: ["sh", "/apply-metadata.sh"]
+    restart: "no"
+
+  # Meilisearch for fast search
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: acd-client-meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: devmasterkey
+      MEILI_ENV: development
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  meilisearch_data:
+  client_postgres_data:

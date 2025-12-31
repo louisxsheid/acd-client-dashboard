@@ -1,0 +1,39 @@
+# Local development docker-compose
+# Run with: docker compose -f docker-compose.dev.yml up -d
+#
+# This uses the full ACD database backup from acd-api, then applies client system migrations
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: acd-client-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: acd_client
+    volumes:
+      - acd_client_pgdata:/var/lib/postgresql/data
+      # Load migrations in order (schema only, no data)
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: acd-client-meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: masterkey
+      MEILI_ENV: development
+    volumes:
+      - acd_client_meili:/meili_data
+
+volumes:
+  acd_client_pgdata:
+  acd_client_meili:

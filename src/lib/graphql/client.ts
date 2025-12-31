@@ -1,0 +1,43 @@
+import { Client, cacheExchange, fetchExchange } from '@urql/svelte';
+import { browser } from '$app/environment';
+
+// Client-side GraphQL client for Hasura
+// Connects to the remote API microservice
+export function createClient(token?: string) {
+	return new Client({
+		url: import.meta.env.VITE_HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081/v1/graphql',
+		exchanges: [cacheExchange, fetchExchange],
+		preferGetMethod: false,
+		requestPolicy: 'cache-and-network',
+		fetchOptions: () => {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json'
+			};
+
+			// If we have a JWT token, use it for authorization
+			if (token) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
+
+			// For development/admin access, use admin secret
+			const secret = import.meta.env.VITE_HASURA_ADMIN_SECRET;
+			if (secret && !token) {
+				headers['x-hasura-admin-secret'] = secret;
+			}
+
+			return {
+				method: 'POST',
+				headers
+			};
+		}
+	});
+}
+
+// Default client instance (will use admin secret in dev)
+// Note: For SSR, use serverClient from server-client.ts instead
+export const client = browser
+	? createClient()
+	: new Client({
+			url: 'http://localhost:8081/v1/graphql',
+			exchanges: [cacheExchange, fetchExchange]
+		});
