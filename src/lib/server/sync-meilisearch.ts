@@ -57,7 +57,6 @@ async function syncAllTowers(): Promise<number> {
 				t.longitude,
 				t.tower_type as tower_tower_type,
 				t.created_at,
-				t.updated_at,
 				ts.site_id,
 				ts.address,
 				ts.city,
@@ -135,7 +134,6 @@ interface TowerRow {
 	longitude: number;
 	tower_tower_type: string | null;
 	created_at: string;
-	updated_at: string;
 	site_id: string | null;
 	address: string | null;
 	city: string | null;
@@ -218,8 +216,7 @@ function rowToTowerDocument(row: TowerRow): TowerSearchDocument {
 		provider_count: row.provider_count || 0,
 		provider_names: row.provider_names || [],
 
-		created_at: row.created_at,
-		updated_at: row.updated_at
+		created_at: row.created_at
 	};
 }
 
@@ -326,7 +323,7 @@ function rowToEntityDocument(row: EntityRow): EntitySearchDocument {
 export async function incrementalSync(since: Date): Promise<{ towers: number; entities: number }> {
 	console.log(`Incremental sync since ${since.toISOString()}`);
 
-	// Find updated towers
+	// Find updated towers (based on tower_sites, entities, and contacts updated_at)
 	const towerResult = await pool.query<{ id: number }>(
 		`
 		SELECT DISTINCT t.id
@@ -334,8 +331,7 @@ export async function incrementalSync(since: Date): Promise<{ towers: number; en
 		LEFT JOIN tower_sites ts ON ts.tower_id = t.id
 		LEFT JOIN entities e ON ts.entity_id = e.id
 		LEFT JOIN entity_contacts ec ON ec.entity_id = e.id
-		WHERE t.updated_at > $1
-		   OR ts.updated_at > $1
+		WHERE ts.updated_at > $1
 		   OR e.updated_at > $1
 		   OR ec.updated_at > $1
 		`,
@@ -374,7 +370,7 @@ async function syncSingleTower(towerId: number): Promise<void> {
 		`
 		SELECT
 			t.id, t.latitude, t.longitude, t.tower_type as tower_tower_type,
-			t.created_at, t.updated_at,
+			t.created_at,
 			ts.site_id, ts.address, ts.city, ts.state, ts.zip_code,
 			ts.carrier, ts.tower_type as site_tower_type, ts.status, ts.google_maps_url,
 			e.id as entity_id, e.name as entity_name, e.entity_type,
