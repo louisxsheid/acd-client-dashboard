@@ -7,7 +7,11 @@ function getEndpoint() {
 }
 
 function getAdminSecret() {
-	return env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET || 'devsecret';
+	const secret = env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET;
+	if (!secret) {
+		throw new Error('HASURA_ADMIN_SECRET environment variable is not configured');
+	}
+	return secret;
 }
 
 interface GraphQLResponse<T = any> {

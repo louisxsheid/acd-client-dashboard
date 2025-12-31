@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import type { CompanyTower, Tower, TowerSite, Entity, EntityContact } from '$lib/types';
+	import Spinner from './Spinner.svelte';
+	import LoadingSkeleton from './LoadingSkeleton.svelte';
 
 	interface Props {
 		tower: CompanyTower | null;
@@ -360,42 +363,69 @@
 		</div>
 	</div>
 {:else if loading}
-	<div class="tower-detail loading">
-		<div class="spinner"></div>
-		<span>Loading tower details...</span>
+	<div class="tower-detail loading-skeleton">
+		<div class="skeleton-header">
+			<div class="skeleton-title">
+				<LoadingSkeleton variant="text" width="180px" height="1.25rem" />
+				<LoadingSkeleton variant="text" width="120px" height="0.875rem" />
+			</div>
+			<LoadingSkeleton variant="text" width="24px" height="24px" />
+		</div>
+		<div class="skeleton-tabs">
+			<LoadingSkeleton variant="text" width="60px" height="0.875rem" />
+			<LoadingSkeleton variant="text" width="60px" height="0.875rem" />
+			<LoadingSkeleton variant="text" width="60px" height="0.875rem" />
+			<LoadingSkeleton variant="text" width="60px" height="0.875rem" />
+		</div>
+		<div class="skeleton-content">
+			<LoadingSkeleton variant="text" lines={4} />
+		</div>
 	</div>
 {/if}
 
 <style>
 	.tower-detail {
-		background-color: #1e1e2e;
-		border-top: 1px solid #3b3b50;
+		background-color: #253448;
+		border-top: 1px solid #3d4f63;
 		max-height: 400px;
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
 	}
 
-	.tower-detail.loading {
+	.loading-skeleton {
+		padding: 1rem;
+		animation: fadeIn 0.2s ease-out;
+	}
+
+	.skeleton-header {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
-		padding: 2rem;
-		color: #71717a;
+		justify-content: space-between;
+		align-items: flex-start;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid #3d4f63;
 	}
 
-	.spinner {
-		width: 24px;
-		height: 24px;
-		border: 2px solid #3b3b50;
-		border-top-color: #3b82f6;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
+	.skeleton-title {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
-	@keyframes spin {
-		to { transform: rotate(360deg); }
+	.skeleton-tabs {
+		display: flex;
+		gap: 1rem;
+		padding: 0.75rem 0;
+		border-bottom: 1px solid #3d4f63;
+	}
+
+	.skeleton-content {
+		padding: 1rem 0;
+	}
+
+	@keyframes fadeIn {
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 
 	.detail-header {
@@ -403,8 +433,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid #3b3b50;
-		background-color: #27273a;
+		border-bottom: 1px solid #3d4f63;
+		background-color: #2d3e52;
 	}
 
 	.header-main {
@@ -448,8 +478,8 @@
 
 	.tabs {
 		display: flex;
-		border-bottom: 1px solid #3b3b50;
-		background-color: #27273a;
+		border-bottom: 1px solid #3d4f63;
+		background-color: #2d3e52;
 	}
 
 	.tabs button {
@@ -458,7 +488,7 @@
 		background: none;
 		border: none;
 		border-bottom: 2px solid transparent;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -466,12 +496,17 @@
 	}
 
 	.tabs button:hover {
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.tabs button:focus-visible {
+		outline: none;
+		box-shadow: inset 0 0 0 2px rgba(94, 177, 247, 0.3);
 	}
 
 	.tabs button.active {
-		color: #3b82f6;
-		border-bottom-color: #3b82f6;
+		color: #5EB1F7;
+		border-bottom-color: #5EB1F7;
 	}
 
 	.detail-content {
@@ -533,11 +568,13 @@
 		gap: 0.375rem;
 		margin-top: 0.75rem;
 		font-size: 0.75rem;
-		color: #3b82f6;
+		color: #5EB1F7;
 		text-decoration: none;
+		transition: color 0.15s;
 	}
 
 	.external-link:hover {
+		color: #FFFFFF;
 		text-decoration: underline;
 	}
 
@@ -572,11 +609,17 @@
 
 	/* Contact Card Styles */
 	.contact-card {
-		background-color: #27273a;
-		border: 1px solid #3b3b50;
+		background-color: #2d3e52;
+		border: 1px solid #3d4f63;
 		border-radius: 0.5rem;
 		padding: 1rem;
 		margin-bottom: 0.75rem;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.contact-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 	}
 
 	.contact-card:last-child {
@@ -593,7 +636,7 @@
 	.contact-order {
 		font-size: 0.625rem;
 		font-weight: 600;
-		color: #3b82f6;
+		color: #5EB1F7;
 		text-transform: uppercase;
 	}
 

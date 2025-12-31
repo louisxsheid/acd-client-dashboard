@@ -139,7 +139,9 @@ export function getCarrierColorByName(name: string): string {
   if (name.includes("US Cellular")) return "#0057b8";
   if (name.includes("Dish")) return "#ec1c24";
   if (name.includes("FirstNet")) return "#003366";
-  if (name === "Lead") return "#f97316";
+  if (name.includes("American Tower") || name === "AMT") return "#000000";
+  if (name.includes("Crown Castle")) return "#5EB1F7";
+  if (name.includes("Ghost Lead") || name === "Lead") return "#0a1628";
   if (name === "Portfolio") return "#8b5cf6";
 
   return "#6b7280";
@@ -170,11 +172,17 @@ export function getAccessStateColor(state: string): string {
  * Pass in an array of items with country_id/provider_id, and numeric fields to sum.
  * Returns aggregated data keyed by carrier display name.
  */
+interface CarrierAggregate {
+  name: string;
+  color: string;
+  [key: string]: string | number;
+}
+
 export function aggregateByCarrier<T extends { country_id: number; provider_id: number }>(
   items: T[],
   numericFields: (keyof T)[]
-): Array<{ name: string; color: string } & Record<string, number>> {
-  const carrierMap = new Map<string, { name: string; color: string } & Record<string, number>>();
+): CarrierAggregate[] {
+  const carrierMap = new Map<string, CarrierAggregate>();
 
   items.forEach((item) => {
     const name = getCarrierName(item.country_id, item.provider_id);
@@ -184,10 +192,10 @@ export function aggregateByCarrier<T extends { country_id: number; provider_id: 
       const existing = carrierMap.get(name)!;
       numericFields.forEach((field) => {
         const val = (item[field] as number) || 0;
-        existing[field as string] = (existing[field as string] || 0) + val;
+        existing[field as string] = ((existing[field as string] as number) || 0) + val;
       });
     } else {
-      const entry: { name: string; color: string } & Record<string, number> = { name, color };
+      const entry: CarrierAggregate = { name, color };
       numericFields.forEach((field) => {
         entry[field as string] = (item[field] as number) || 0;
       });

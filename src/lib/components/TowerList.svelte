@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { slide, fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import type { TowerSearchDocument } from '$lib/server/meilisearch';
 	import type { CompanyTower } from '$lib/types';
 
@@ -33,6 +35,45 @@
 	let showFilters = $state(false);
 	let carrierFilter = $state<string>('');
 	let entityFilter = $state<string>('');
+	let listContentRef: HTMLDivElement;
+
+	// Custom smooth scroll with controllable duration
+	function smoothScrollTo(element: Element, duration: number = 600) {
+		const container = listContentRef;
+		if (!container) return;
+
+		const targetTop = element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+		const startTop = container.scrollTop;
+		const distance = targetTop - startTop;
+		const startTime = performance.now();
+
+		function step(currentTime: number) {
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(elapsed / duration, 1);
+			// Ease-out cubic for smooth deceleration
+			const easeOut = 1 - Math.pow(1 - progress, 3);
+			container.scrollTop = startTop + distance * easeOut;
+			if (progress < 1) requestAnimationFrame(step);
+		}
+		requestAnimationFrame(step);
+	}
+
+	// Handle tower selection and scroll into view
+	function handleTowerClick(tower: TowerSearchDocument) {
+		const wasExpanded = isExpanded(tower);
+		onSelect(tower);
+
+		// Only scroll if we're expanding (not collapsing)
+		// Wait for expand animation to fully complete, then scroll
+		if (!wasExpanded) {
+			setTimeout(() => {
+				const wrapper = listContentRef?.querySelector(`[data-tower-id="${tower.id}"]`);
+				if (wrapper) {
+					smoothScrollTo(wrapper, 600);
+				}
+			}, 550);
+		}
+	}
 
 	// Extract unique carriers and entities from towers for filter dropdowns
 	const uniqueCarriers = $derived(() => {
@@ -143,17 +184,17 @@
 			case 'FULL':
 				return '#22c55e';
 			case 'LICENSED':
-				return '#3b82f6';
+				return '#5EB1F7';
 			case 'TRIAL':
 				return '#f59e0b';
 			case 'Portfolio':
-				return '#8b5cf6'; // Purple for portfolio
-			case 'Lead':
-				return '#f97316'; // Orange for leads
+				return '#5EB1F7'; // Teal for portfolio
+			case 'Ghost Lead':
+				return '#0a1628'; // AeroCell navy for ghost leads
 			case 'SAMPLE':
-				return '#71717a';
+				return 'rgba(255, 255, 255, 0.5)';
 			default:
-				return '#71717a';
+				return 'rgba(255, 255, 255, 0.5)';
 		}
 	}
 
@@ -165,7 +206,7 @@
 			if (tower.entity_name?.toLowerCase().includes('oncor')) {
 				return 'Portfolio';
 			}
-			return 'Lead'; // Other ghost leads show as "Lead"
+			return 'Ghost Lead';
 		}
 		return state;
 	}
@@ -175,51 +216,49 @@
 		'AT&T': { bg: '#0077c8', text: 'white' },
 		'Verizon': { bg: '#cd040b', text: 'white' },
 		'T-Mobile': { bg: '#e20074', text: 'white' },
+		'Sprint': { bg: '#ffe100', text: 'black' },
 		'US Cellular': { bg: '#0057b8', text: 'white' },
 		'Dish': { bg: '#ec1c24', text: 'white' },
 		'FirstNet': { bg: '#0067ac', text: 'white' },
-		'American Tower': { bg: '#d4a017', text: 'black' },
-		'Crown Castle': { bg: '#6b46c1', text: 'white' },
-		'Portfolio': { bg: '#8b5cf6', text: 'white' },
-		'Lead': { bg: '#f97316', text: 'white' }
+		'American Tower': { bg: '#000000', text: 'white' },
+		'Crown Castle': { bg: '#5EB1F7', text: 'white' },
+		'Portfolio': { bg: '#5EB1F7', text: 'white' },
+		'Ghost Lead': { bg: '#0a1628', text: 'white' }
 	};
 
 	function getCarrierStyle(carrier: string | undefined): { bg: string; text: string } {
-		if (!carrier) return { bg: '#3f3f46', text: '#a1a1aa' };
+		if (!carrier) return { bg: '#3d4f63', text: 'rgba(255, 255, 255, 0.7)' };
 		// Special case for Portfolio
 		if (carrier === 'Portfolio') {
-			return { bg: '#8b5cf6', text: 'white' }; // Purple for portfolio
+			return { bg: '#5EB1F7', text: 'white' }; // Teal for portfolio
 		}
 		for (const [key, style] of Object.entries(CARRIER_COLORS)) {
 			if (carrier.toLowerCase().includes(key.toLowerCase())) {
 				return style;
 			}
 		}
-		return { bg: '#3f3f46', text: '#e4e4e7' };
+		return { bg: '#3d4f63', text: '#FFFFFF' };
 	}
 
-	// Transform provider/carrier name for display - "Ghost Lead" becomes "Portfolio" or "Lead"
+	// Transform provider/carrier name for display - "Ghost Lead" becomes "Portfolio" or stays "Ghost Lead"
 	function getDisplayProviderName(providerName: string, entityName?: string): string {
 		if (providerName === 'Ghost Lead') {
-			// Oncor entities show "Portfolio", others show "Lead"
+			// Oncor entities show "Portfolio", others show "Ghost Lead"
 			if (entityName?.toLowerCase().includes('oncor')) {
 				return 'Portfolio';
 			}
-			return 'Lead';
+			return 'Ghost Lead';
 		}
 		return providerName;
 	}
 
-	// Get the display carrier label - shows "Portfolio" for Oncor entities, "Lead" for other Ghost Leads
+	// Get the display carrier label - shows "Portfolio" for Oncor entities, "Ghost Lead" for other Ghost Leads
 	function getCarrierLabel(tower: TowerSearchDocument): string | undefined {
 		// If entity name is Oncor, show "Portfolio" instead of carrier
 		if (tower.entity_name?.toLowerCase().includes('oncor')) {
 			return 'Portfolio';
 		}
-		// Transform "Ghost Lead" carrier to "Lead"
-		if (tower.carrier === 'Ghost Lead') {
-			return 'Lead';
-		}
+		// Keep "Ghost Lead" as is
 		return tower.carrier;
 	}
 
@@ -294,7 +333,7 @@
 		</div>
 
 		{#if showFilters}
-			<div class="filter-panel">
+			<div class="filter-panel" transition:slide={{ duration: 150 }}>
 				<div class="filter-group">
 					<span class="filter-label">Carrier</span>
 					<div class="select-wrapper">
@@ -346,7 +385,7 @@
 		</span>
 	</div>
 
-	<div class="list-content">
+	<div class="list-content" bind:this={listContentRef}>
 		{#if loading}
 			<div class="loading-state">
 				<div class="loading-spinner-wrapper">
@@ -380,7 +419,7 @@
 					<button
 						class="tower-item"
 						class:selected={expanded}
-						onclick={() => onSelect(tower)}
+						onclick={() => handleTowerClick(tower)}
 					>
 						<div class="tower-main">
 							<div class="carrier-badges">
@@ -388,22 +427,34 @@
 									{#each tower.provider_names as providerName}
 										{@const displayName = getDisplayProviderName(providerName, tower.entity_name)}
 										{@const carrierStyle = getCarrierStyle(displayName)}
-										<span
-											class="carrier-badge"
-											style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
-										>
-											{displayName}
-										</span>
+										{#if displayName === 'Ghost Lead'}
+											<span class="carrier-badge ghost-lead-badge" style="background-color: {carrierStyle.bg}">
+												<span class="ghost-lead-text">Ghost Lead</span>
+											</span>
+										{:else}
+											<span
+												class="carrier-badge"
+												style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
+											>
+												{displayName}
+											</span>
+										{/if}
 									{/each}
 								{:else if getCarrierLabel(tower)}
 									{@const carrierLabel = getCarrierLabel(tower)}
 									{@const carrierStyle = getCarrierStyle(carrierLabel)}
-									<span
-										class="carrier-badge"
-										style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
-									>
-										{carrierLabel}
-									</span>
+									{#if carrierLabel === 'Ghost Lead'}
+										<span class="carrier-badge ghost-lead-badge" style="background-color: {carrierStyle.bg}">
+											<span class="ghost-lead-text">Ghost Lead</span>
+										</span>
+									{:else}
+										<span
+											class="carrier-badge"
+											style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
+										>
+											{carrierLabel}
+										</span>
+									{/if}
 								{/if}
 							</div>
 							<div class="tower-address">{formatAddress(tower)}</div>
@@ -418,12 +469,18 @@
 						</div>
 						<div class="tower-side">
 							{#if getAccessStateLabel(tower) !== 'SAMPLE'}
-								<span
-									class="access-badge"
-									style="background-color: {getAccessStateColor(getAccessStateLabel(tower))}"
-								>
-									{getAccessStateLabel(tower)}
-								</span>
+								{#if getAccessStateLabel(tower) === 'Ghost Lead'}
+									<span class="access-badge ghost-lead-badge" style="background-color: {getAccessStateColor('Ghost Lead')}">
+										<span class="ghost-lead-text">Ghost Lead</span>
+									</span>
+								{:else}
+									<span
+										class="access-badge"
+										style="background-color: {getAccessStateColor(getAccessStateLabel(tower))}"
+									>
+										{getAccessStateLabel(tower)}
+									</span>
+								{/if}
 							{/if}
 							<svg class="expand-icon" class:rotated={expanded} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="m6 9 6 6 6-6"/>
@@ -432,14 +489,16 @@
 					</button>
 
 					<!-- Expanded details -->
-					{#if expanded}
+					<div class="tower-details-wrapper">
 						<div class="tower-details">
-							{#if detailsLoading}
-								<div class="details-loading">
-									<div class="spinner small"></div>
-									<span>Loading details...</span>
-								</div>
-							{:else if details}
+							{#if expanded}
+								<div class="tower-details-content">
+									{#if detailsLoading}
+										<div class="details-loading">
+											<div class="spinner small"></div>
+											<span>Loading details...</span>
+										</div>
+									{:else if details}
 								{@const site = details.tower.tower_site}
 								{@const entity = site?.entity}
 								{@const contacts = entity?.entity_contacts || []}
@@ -493,6 +552,12 @@
 											<label>County</label>
 											<span>{site?.county || 'N/A'}</span>
 										</div>
+										{#if site?.year_built}
+											<div class="detail-item">
+												<label>Year Built</label>
+												<span>{site.year_built}</span>
+											</div>
+										{/if}
 									</div>
 									{#if site?.remarks}
 										<div class="remarks">
@@ -500,7 +565,83 @@
 											<p>{site.remarks}</p>
 										</div>
 									{/if}
+									{#if site?.imagery_url}
+										<a href={site.imagery_url} target="_blank" rel="noopener noreferrer" class="external-link">
+											View Imagery
+										</a>
+									{/if}
 								</div>
+
+								<!-- Zoning Section -->
+								{#if site?.zoning || site?.zoning_type || site?.use_code}
+									<div class="detail-section">
+										<h4>Zoning</h4>
+										<div class="detail-grid">
+											{#if site.use_code}
+												<div class="detail-item">
+													<label>Use Code</label>
+													<span>{site.use_code}</span>
+												</div>
+											{/if}
+											{#if site.zoning}
+												<div class="detail-item">
+													<label>Zoning</label>
+													<span>{site.zoning}</span>
+												</div>
+											{/if}
+											{#if site.zoning_type}
+												<div class="detail-item">
+													<label>Type</label>
+													<span>{site.zoning_type}</span>
+												</div>
+											{/if}
+											{#if site.zoning_subtype}
+												<div class="detail-item">
+													<label>Subtype</label>
+													<span>{site.zoning_subtype}</span>
+												</div>
+											{/if}
+											{#if site.zoning_description}
+												<div class="detail-item full">
+													<label>Description</label>
+													<span>{site.zoning_description}</span>
+												</div>
+											{/if}
+										</div>
+										{#if site.zoning_code_link}
+											<a href={site.zoning_code_link} target="_blank" rel="noopener noreferrer" class="external-link">
+												View Zoning Code
+											</a>
+										{/if}
+									</div>
+								{/if}
+
+								<!-- Property Values Section -->
+								{#if site?.parcel_value || site?.land_value || site?.improvement_value}
+									<div class="detail-section">
+										<h4>Property Values</h4>
+										<div class="detail-grid">
+											{#if site.parcel_value}
+												<div class="detail-item">
+													<label>Parcel Value</label>
+													<span class="value-highlight">${site.parcel_value.toLocaleString()}</span>
+												</div>
+											{/if}
+											{#if site.land_value}
+												<div class="detail-item">
+													<label>Land Value</label>
+													<span>${site.land_value.toLocaleString()}</span>
+												</div>
+											{/if}
+											{#if site.improvement_value}
+												<div class="detail-item">
+													<label>Improvement Value</label>
+													<span>${site.improvement_value.toLocaleString()}</span>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/if}
 
 								<!-- Entity Section -->
 								{#if entity}
@@ -564,13 +705,15 @@
 										{/each}
 									</div>
 								{/if}
-							{:else}
-								<div class="details-empty">
-									<span>No additional details available</span>
+									{:else}
+										<div class="details-empty">
+											<span>No additional details available</span>
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>
-					{/if}
+					</div>
 				</div>
 			{/each}
 		{/if}
@@ -583,14 +726,14 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background-color: #1e1e2e;
-		border-right: 1px solid #3b3b50;
+		background-color: #253448;
+		border-right: 1px solid #3d4f63;
 	}
 
 	.list-header {
 		padding: 0.75rem;
-		border-bottom: 1px solid #3b3b50;
-		background-color: #27273a;
+		border-bottom: 1px solid #3d4f63;
+		background-color: #2d3e52;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
@@ -615,10 +758,10 @@
 		justify-content: center;
 		width: 36px;
 		height: 36px;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.5rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		cursor: pointer;
 		transition: all 0.15s;
 		position: relative;
@@ -626,21 +769,21 @@
 	}
 
 	.filter-toggle:hover {
-		border-color: #52525b;
-		color: #a1a1aa;
+		border-color: rgba(255, 255, 255, 0.3);
+		color: rgba(255, 255, 255, 0.7);
 	}
 
 	.filter-toggle.active {
-		background-color: rgba(59, 130, 246, 0.1);
-		border-color: #3b82f6;
-		color: #3b82f6;
+		background-color: rgba(94, 177, 247, 0.1);
+		border-color: #5EB1F7;
+		color: #5EB1F7;
 	}
 
 	.filter-badge {
 		position: absolute;
 		top: -4px;
 		right: -4px;
-		background-color: #3b82f6;
+		background-color: #5EB1F7;
 		color: white;
 		font-size: 0.625rem;
 		font-weight: 600;
@@ -669,7 +812,7 @@
 	.filter-label {
 		font-size: 0.625rem;
 		font-weight: 500;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
@@ -683,10 +826,10 @@
 	.filter-select {
 		width: 100%;
 		padding: 0.5rem 1.75rem 0.5rem 0.625rem;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.375rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		font-size: 0.75rem;
 		cursor: pointer;
 		appearance: none;
@@ -696,17 +839,18 @@
 
 	.filter-select:focus {
 		outline: none;
-		border-color: #3b82f6;
+		border-color: #5EB1F7;
+		box-shadow: 0 0 0 3px rgba(94, 177, 247, 0.2);
 	}
 
 	.filter-select:hover {
-		border-color: #52525b;
+		border-color: rgba(255, 255, 255, 0.3);
 	}
 
 	.select-chevron {
 		position: absolute;
 		right: 0.5rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		pointer-events: none;
 	}
 
@@ -716,9 +860,9 @@
 		gap: 0.25rem;
 		padding: 0.5rem 0.625rem;
 		background-color: transparent;
-		border: 1px solid #3b3b50;
+		border: 1px solid #3d4f63;
 		border-radius: 0.375rem;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		font-size: 0.75rem;
 		cursor: pointer;
 		white-space: nowrap;
@@ -734,27 +878,27 @@
 	.search-icon {
 		position: absolute;
 		left: 0.75rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		pointer-events: none;
 	}
 
 	.search-input {
 		width: 100%;
 		padding: 0.5rem 2rem 0.5rem 2.25rem;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.5rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		font-size: 0.8125rem;
 	}
 
 	.search-input:focus {
 		outline: none;
-		border-color: #3b82f6;
+		border-color: #5EB1F7;
 	}
 
 	.search-input::placeholder {
-		color: #52525b;
+		color: rgba(255, 255, 255, 0.55);
 	}
 
 	.clear-btn {
@@ -762,19 +906,19 @@
 		right: 0.5rem;
 		background: none;
 		border: none;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		cursor: pointer;
 		padding: 0.25rem;
 		display: flex;
 	}
 
 	.clear-btn:hover {
-		color: #f4f4f5;
+		color: #FFFFFF;
 	}
 
 	.count {
 		font-size: 0.75rem;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		font-weight: 500;
 	}
 
@@ -813,7 +957,7 @@
 
 	.skeleton-item {
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid #27273a;
+		border-bottom: 1px solid #3d4f63;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
@@ -822,7 +966,7 @@
 	.skeleton-badge {
 		width: 60px;
 		height: 20px;
-		background: linear-gradient(90deg, #27273a 25%, #3b3b50 50%, #27273a 75%);
+		background: linear-gradient(90deg, #253448 25%, #2d3e52 50%, #253448 75%);
 		background-size: 200% 100%;
 		animation: shimmer 1.5s infinite;
 		border-radius: 0.25rem;
@@ -830,7 +974,7 @@
 
 	.skeleton-line {
 		height: 12px;
-		background: linear-gradient(90deg, #27273a 25%, #3b3b50 50%, #27273a 75%);
+		background: linear-gradient(90deg, #253448 25%, #2d3e52 50%, #253448 75%);
 		background-size: 200% 100%;
 		animation: shimmer 1.5s infinite;
 		border-radius: 0.25rem;
@@ -880,8 +1024,8 @@
 	.spinner {
 		width: 24px;
 		height: 24px;
-		border: 2px solid #3b3b50;
-		border-top-color: #3b82f6;
+		border: 2px solid #3d4f63;
+		border-top-color: #5EB1F7;
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
 	}
@@ -898,12 +1042,12 @@
 	}
 
 	.tower-item-wrapper {
-		border-bottom: 1px solid #27273a;
+		border-bottom: 1px solid #2d3e52;
 	}
 
 	.tower-item-wrapper.expanded {
-		background-color: rgba(59, 130, 246, 0.08);
-		border-left: 3px solid #3b82f6;
+		background-color: rgba(94, 177, 247, 0.08);
+		border-left: 3px solid #5EB1F7;
 	}
 
 	.tower-item {
@@ -916,11 +1060,12 @@
 		border: none;
 		cursor: pointer;
 		text-align: left;
-		transition: background-color 0.15s;
+		transition: transform 0.15s ease, background-color 0.15s ease;
 	}
 
 	.tower-item:hover {
-		background-color: #27273a;
+		background-color: #2d3e52;
+		transform: translateY(-1px);
 	}
 
 	.tower-item.selected {
@@ -948,9 +1093,33 @@
 		letter-spacing: 0.01em;
 	}
 
+	.ghost-lead-badge {
+		border: 1px solid #3d4f63;
+	}
+
+	.ghost-lead-text {
+		background: linear-gradient(
+			90deg,
+			#B0BEC5 0%,
+			#A3C2CF 11%,
+			#96C6D9 22%,
+			#89CAE3 33%,
+			#7CCFEE 44%,
+			#6FD3F8 55%,
+			#62D7FF 66%,
+			#55DBFF 77%,
+			#48E0FF 88%,
+			#5EB1F7 100%
+		);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		font-weight: 700;
+	}
+
 	.tower-address {
 		font-size: 0.8125rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -966,8 +1135,8 @@
 
 	.entity-name {
 		font-size: 0.6875rem;
-		color: #a1a1aa;
-		background-color: #27273a;
+		color: rgba(255, 255, 255, 0.7);
+		background-color: #2d3e52;
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		max-width: 180px;
@@ -979,11 +1148,11 @@
 	.tower-type {
 		font-size: 0.625rem;
 		font-weight: 500;
-		color: #71717a;
-		background-color: #1e1e2e;
+		color: rgba(255, 255, 255, 0.7);
+		background-color: #253448;
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
-		border: 1px solid #3b3b50;
+		border: 1px solid #3d4f63;
 	}
 
 
@@ -1006,7 +1175,7 @@
 	}
 
 	.expand-icon {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		transition: transform 0.2s;
 	}
 
@@ -1014,11 +1183,33 @@
 		transform: rotate(180deg);
 	}
 
-	/* Expanded Details */
+	/* Expanded Details - CSS Grid animation for smooth expand */
+	.tower-details-wrapper {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.tower-item-wrapper.expanded .tower-details-wrapper {
+		grid-template-rows: 1fr;
+	}
+
 	.tower-details {
-		padding: 0 1rem 1rem 1rem;
-		border-top: 1px solid #3b3b50;
-		background-color: rgba(39, 39, 58, 0.5);
+		overflow: hidden;
+		min-height: 0;
+	}
+
+	.tower-details-content {
+		padding: 1rem 1rem 1rem 1.25rem;
+		border-top: 1px solid #3d4f63;
+		background-color: rgba(45, 62, 82, 0.5);
+		min-height: 120px;
+		opacity: 0;
+		transition: opacity 0.35s ease-out 0.15s;
+	}
+
+	.tower-item-wrapper.expanded .tower-details-content {
+		opacity: 1;
 	}
 
 	.details-loading,
@@ -1028,13 +1219,13 @@
 		justify-content: center;
 		gap: 0.5rem;
 		padding: 1.5rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		font-size: 0.75rem;
 	}
 
 	.detail-section {
 		padding: 0.75rem 0;
-		border-bottom: 1px solid #3b3b50;
+		border-bottom: 1px solid #3d4f63;
 	}
 
 	.detail-section:last-child {
@@ -1044,7 +1235,7 @@
 	.detail-section h4 {
 		font-size: 0.625rem;
 		font-weight: 600;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.7);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		margin: 0 0 0.5rem 0;
@@ -1068,23 +1259,28 @@
 
 	.detail-item label {
 		font-size: 0.625rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 	}
 
 	.detail-item span {
 		font-size: 0.75rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 	}
 
 	.entity-value {
 		font-weight: 600;
 	}
 
+	.value-highlight {
+		font-weight: 600;
+		color: #5EB1F7;
+	}
+
 	.external-link {
 		display: inline-block;
 		margin-top: 0.5rem;
 		font-size: 0.6875rem;
-		color: #3b82f6;
+		color: #5EB1F7;
 		text-decoration: none;
 	}
 
@@ -1099,21 +1295,21 @@
 	.remarks label {
 		display: block;
 		font-size: 0.625rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		margin-bottom: 0.125rem;
 	}
 
 	.remarks p {
 		font-size: 0.75rem;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		margin: 0;
 		line-height: 1.4;
 	}
 
 	/* Contact Card */
 	.contact-card {
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.375rem;
 		padding: 0.625rem;
 		margin-bottom: 0.5rem;
@@ -1133,14 +1329,14 @@
 	.contact-name {
 		font-size: 0.8125rem;
 		font-weight: 600;
-		color: #f4f4f5;
+		color: #FFFFFF;
 	}
 
 	.primary-badge {
 		font-size: 0.5rem;
 		font-weight: 600;
 		padding: 0.125rem 0.25rem;
-		background-color: #3b82f6;
+		background-color: #5EB1F7;
 		color: white;
 		border-radius: 0.125rem;
 		text-transform: uppercase;
@@ -1148,7 +1344,7 @@
 
 	.contact-title {
 		font-size: 0.6875rem;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		margin-bottom: 0.375rem;
 	}
 
@@ -1163,16 +1359,16 @@
 		align-items: center;
 		gap: 0.375rem;
 		font-size: 0.6875rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		text-decoration: none;
 	}
 
 	.contact-link:hover {
-		color: #3b82f6;
+		color: #5EB1F7;
 	}
 
 	.contact-link svg {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 	}
 
 	.dnc-badge {

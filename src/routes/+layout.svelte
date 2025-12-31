@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { slide } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/stores';
 
@@ -7,6 +9,8 @@
 	const session = data.session;
 	let mobileMenuOpen = $state(false);
 	let userMenuOpen = $state(false);
+	let mobileMenuRef: HTMLDivElement | null = $state(null);
+	let mobileMenuBtnRef: HTMLButtonElement | null = $state(null);
 
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
@@ -14,6 +18,8 @@
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
+		// Return focus to the toggle button
+		mobileMenuBtnRef?.focus();
 	}
 
 	function toggleUserMenu() {
@@ -24,6 +30,31 @@
 		userMenuOpen = false;
 	}
 
+	// Focus trap for mobile menu
+	function handleMobileMenuKeydown(e: KeyboardEvent) {
+		if (!mobileMenuOpen || !mobileMenuRef) return;
+
+		if (e.key === 'Escape') {
+			closeMobileMenu();
+			return;
+		}
+
+		if (e.key === 'Tab') {
+			const focusableElements = mobileMenuRef.querySelectorAll<HTMLElement>(
+				'a[href], button:not([disabled]), input:not([disabled])'
+			);
+			const firstEl = focusableElements[0];
+			const lastEl = focusableElements[focusableElements.length - 1];
+
+			if (e.shiftKey && document.activeElement === firstEl) {
+				e.preventDefault();
+				lastEl?.focus();
+			} else if (!e.shiftKey && document.activeElement === lastEl) {
+				e.preventDefault();
+				firstEl?.focus();
+			}
+		}
+	}
 
 </script>
 
@@ -48,15 +79,10 @@
 			<nav>
 				<div class="nav-left">
 					<a href="/map" class="logo">
-						<svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-							<path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-							<path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-							<path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-							<circle cx="12" cy="12" r="3"/>
-							<path d="m16 16-1.5-1.5"/>
-						</svg>
-						<span class="logo-text">ACD</span>
+						<div class="logo-square">
+							<img src="/aerocell-icon.png" alt="AeroCell" class="logo-img" />
+						</div>
+						<span class="logo-text">AeroCell</span>
 					</a>
 
 					<div class="nav-links desktop-only">
@@ -112,7 +138,7 @@
 					</div>
 				</div>
 
-				<button class="mobile-menu-btn mobile-only" onclick={toggleMobileMenu} aria-label="Toggle menu">
+				<button bind:this={mobileMenuBtnRef} class="mobile-menu-btn mobile-only" onclick={toggleMobileMenu} aria-label="Toggle menu" aria-expanded={mobileMenuOpen}>
 					{#if mobileMenuOpen}
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<line x1="18" y1="6" x2="6" y2="18"/>
@@ -129,7 +155,7 @@
 			</nav>
 
 			{#if mobileMenuOpen}
-				<div class="mobile-menu">
+				<div bind:this={mobileMenuRef} class="mobile-menu" transition:slide={{ duration: 200, easing: cubicOut }} onkeydown={handleMobileMenuKeydown} role="menu">
 					<div class="mobile-user-info">
 						<div class="user-avatar mobile">
 							{(session.user.name || session.user.email || 'U').charAt(0).toUpperCase()}
@@ -139,8 +165,8 @@
 							<span class="company-badge">{session.user.companyName}</span>
 						</div>
 					</div>
-					<div class="mobile-nav-links">
-						<a href="/map" class:active={$page.url.pathname === '/map'} onclick={closeMobileMenu}>
+					<div class="mobile-nav-links" role="group">
+						<a href="/map" class:active={$page.url.pathname === '/map'} onclick={closeMobileMenu} role="menuitem">
 							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
 								<line x1="9" y1="3" x2="9" y2="18"/>
@@ -148,7 +174,7 @@
 							</svg>
 							Map
 						</a>
-						<a href="/analytics" class:active={$page.url.pathname === '/analytics'} onclick={closeMobileMenu}>
+						<a href="/analytics" class:active={$page.url.pathname === '/analytics'} onclick={closeMobileMenu} role="menuitem">
 							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="M3 3v18h18"/>
 								<path d="m19 9-5 5-4-4-3 3"/>
@@ -177,6 +203,16 @@
 </div>
 
 <style>
+	/* AeroCell Brand Colors */
+	:root {
+		--aero-navy: #1D2C43;
+		--aero-teal: #5EB1F7;
+		--aero-white: #FFFFFF;
+		--aero-navy-light: #253448;
+		--aero-navy-lighter: #2d3e52;
+		--aero-border: #3d4f63;
+	}
+
 	:global(*) {
 		margin: 0;
 		padding: 0;
@@ -185,8 +221,8 @@
 
 	:global(body) {
 		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-		background-color: #0f0f1a;
-		color: #f4f4f5;
+		background-color: var(--aero-navy);
+		color: var(--aero-white);
 		min-height: 100vh;
 	}
 
@@ -197,8 +233,8 @@
 	}
 
 	header {
-		background-color: #1e1e2e;
-		border-bottom: 1px solid #3b3b50;
+		background-color: var(--aero-navy-light);
+		border-bottom: 1px solid var(--aero-border);
 		position: sticky;
 		top: 0;
 		z-index: 100;
@@ -223,11 +259,32 @@
 		align-items: center;
 		gap: 0.5rem;
 		text-decoration: none;
-		color: #3b82f6;
+		color: var(--aero-white);
 	}
 
-	.logo-icon {
-		flex-shrink: 0;
+	.logo-square {
+		width: 32px;
+		height: 32px;
+		min-width: 32px;
+		min-height: 32px;
+		background-color: #5EB1F7;
+		border-radius: 8px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 6px;
+		transition: transform 0.15s;
+	}
+
+	.logo:hover .logo-square {
+		transform: scale(1.05);
+	}
+
+	.logo-img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
 	}
 
 	.logo-text {
@@ -246,7 +303,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 		text-decoration: none;
 		font-size: 0.875rem;
 		font-weight: 500;
@@ -256,13 +313,18 @@
 	}
 
 	.nav-links a:hover {
-		color: #f4f4f5;
+		color: var(--aero-white);
 		background-color: rgba(255, 255, 255, 0.05);
 	}
 
+	.nav-links a:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(94, 177, 247, 0.3);
+	}
+
 	.nav-links a.active {
-		color: #3b82f6;
-		background-color: rgba(59, 130, 246, 0.1);
+		color: var(--aero-teal);
+		background-color: rgba(94, 177, 247, 0.1);
 	}
 
 	.nav-links a svg {
@@ -285,7 +347,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		background: none;
-		border: 1px solid #3b3b50;
+		border: 1px solid var(--aero-border);
 		padding: 0.375rem 0.625rem 0.375rem 0.375rem;
 		border-radius: 0.5rem;
 		cursor: pointer;
@@ -294,13 +356,13 @@
 
 	.user-btn:hover {
 		background-color: rgba(255, 255, 255, 0.05);
-		border-color: #52525b;
+		border-color: rgba(255, 255, 255, 0.3);
 	}
 
 	.user-avatar {
 		width: 28px;
 		height: 28px;
-		background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+		background: linear-gradient(135deg, #5EB1F7 0%, #1D2C43 100%);
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -317,7 +379,7 @@
 	}
 
 	.chevron {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 		transition: transform 0.15s;
 	}
 
@@ -330,8 +392,8 @@
 		top: calc(100% + 0.5rem);
 		right: 0;
 		width: 220px;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: var(--aero-navy-light);
+		border: 1px solid var(--aero-border);
 		border-radius: 0.75rem;
 		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 		overflow: hidden;
@@ -359,12 +421,12 @@
 	.dropdown-name {
 		font-size: 0.875rem;
 		font-weight: 600;
-		color: #f4f4f5;
+		color: var(--aero-white);
 	}
 
 	.dropdown-email {
 		font-size: 0.75rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 	}
 
 	.dropdown-company {
@@ -372,13 +434,13 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: #3b82f6;
+		color: #5EB1F7;
 		margin-top: 0.25rem;
 	}
 
 	.dropdown-divider {
 		height: 1px;
-		background-color: #3b3b50;
+		background-color: var(--aero-border);
 	}
 
 	.dropdown-signout {
@@ -389,7 +451,7 @@
 		padding: 0.75rem 1rem;
 		background: none;
 		border: none;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		font-size: 0.8125rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -407,10 +469,10 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: #3b82f6;
+		color: #5EB1F7;
 		padding: 0.25rem 0.5rem;
-		background-color: rgba(59, 130, 246, 0.1);
-		border: 1px solid rgba(59, 130, 246, 0.2);
+		background-color: rgba(94, 177, 247, 0.1);
+		border: 1px solid rgba(94, 177, 247, 0.2);
 		border-radius: 0.375rem;
 	}
 
@@ -423,7 +485,7 @@
 		height: 40px;
 		background: none;
 		border: none;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		cursor: pointer;
 		border-radius: 0.5rem;
 		transition: all 0.15s;
@@ -431,13 +493,13 @@
 
 	.mobile-menu-btn:hover {
 		background-color: rgba(255, 255, 255, 0.05);
-		color: #f4f4f5;
+		color: var(--aero-white);
 	}
 
 	/* Mobile menu */
 	.mobile-menu {
-		background-color: #1e1e2e;
-		border-top: 1px solid #3b3b50;
+		background-color: var(--aero-navy-light);
+		border-top: 1px solid var(--aero-border);
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
@@ -449,7 +511,7 @@
 		align-items: center;
 		gap: 0.75rem;
 		padding-bottom: 1rem;
-		border-bottom: 1px solid #27273a;
+		border-bottom: 1px solid var(--aero-navy-lighter);
 	}
 
 	.mobile-user-details {
@@ -461,7 +523,7 @@
 	.user-name {
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: #f4f4f5;
+		color: var(--aero-white);
 	}
 
 	.mobile-nav-links {
@@ -474,7 +536,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 		text-decoration: none;
 		font-size: 0.9375rem;
 		font-weight: 500;
@@ -484,18 +546,18 @@
 	}
 
 	.mobile-nav-links a:hover {
-		color: #f4f4f5;
+		color: var(--aero-white);
 		background-color: rgba(255, 255, 255, 0.05);
 	}
 
 	.mobile-nav-links a.active {
-		color: #3b82f6;
-		background-color: rgba(59, 130, 246, 0.1);
+		color: #5EB1F7;
+		background-color: rgba(94, 177, 247, 0.1);
 	}
 
 	.mobile-signout {
 		padding-top: 0.5rem;
-		border-top: 1px solid #27273a;
+		border-top: 1px solid var(--aero-navy-lighter);
 	}
 
 	.signout-btn-mobile {
@@ -506,8 +568,8 @@
 		width: 100%;
 		padding: 0.75rem 1rem;
 		background: none;
-		border: 1px solid #3b3b50;
-		color: #a1a1aa;
+		border: 1px solid var(--aero-border);
+		color: rgba(255, 255, 255, 0.7);
 		font-size: 0.9375rem;
 		font-weight: 500;
 		border-radius: 0.5rem;

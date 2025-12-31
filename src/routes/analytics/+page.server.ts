@@ -9,7 +9,11 @@ function getEndpoint() {
 }
 
 function getAdminSecret() {
-	return env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET || 'devsecret';
+	const secret = env.HASURA_GRAPHQL_ADMIN_SECRET || env.HASURA_ADMIN_SECRET;
+	if (!secret) {
+		throw new Error('HASURA_ADMIN_SECRET environment variable is not configured');
+	}
+	return secret;
 }
 
 async function query(gql: string, variables: Record<string, any> = {}) {
@@ -63,16 +67,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}
 		`;
 
-		// Carriers from tower_sites
+		// Carriers from tower_sites - get all distinct carriers with counts
 		const carriersQuery = `
 			query CarrierStats {
 				tower_sites(distinct_on: carrier) { carrier }
-				verizon: tower_sites_aggregate(where: {carrier: {_ilike: "%verizon%"}}) { aggregate { count } }
-				att: tower_sites_aggregate(where: {carrier: {_ilike: "%at&t%"}}) { aggregate { count } }
-				tmobile: tower_sites_aggregate(where: {carrier: {_ilike: "%t-mobile%"}}) { aggregate { count } }
-				american_tower: tower_sites_aggregate(where: {carrier: {_ilike: "%american tower%"}}) { aggregate { count } }
-				crown_castle: tower_sites_aggregate(where: {carrier: {_ilike: "%crown castle%"}}) { aggregate { count } }
-				ghost_lead: tower_sites_aggregate(where: {carrier: {_ilike: "%ghost lead%"}}) { aggregate { count } }
 			}
 		`;
 
@@ -114,14 +112,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 			query(entitiesQuery)
 		]);
 
-		// Process tower type data
+		// Process tower type data - always show all types as placeholders
 		const typeData = [
 			{ name: 'Macro', count: stats.macro?.aggregate?.count || 0, color: '#3b82f6' },
-			{ name: 'Micro', count: stats.micro?.aggregate?.count || 0, color: '#8b5cf6' },
-			{ name: 'Pico', count: stats.pico?.aggregate?.count || 0, color: '#22c55e' },
+			{ name: 'Small Cell', count: stats.micro?.aggregate?.count || 0, color: '#8b5cf6' },
+			{ name: 'Micro Cell', count: stats.pico?.aggregate?.count || 0, color: '#22c55e' },
+			{ name: 'Pico', count: 0, color: '#14b8a6' },
 			{ name: 'DAS', count: stats.das?.aggregate?.count || 0, color: '#f59e0b' },
 			{ name: 'COW', count: stats.cow?.aggregate?.count || 0, color: '#ef4444' }
-		].filter(d => d.count > 0);
+		];
 
 		// Process access state data (excluding SAMPLE)
 		const accessStateData = [
@@ -130,17 +129,28 @@ export const load: PageServerLoad = async ({ locals }) => {
 			{ name: 'Full', count: stats.full?.aggregate?.count || 0, color: '#22c55e' }
 		].filter(d => d.count > 0);
 
-		// Process carrier data from tower_sites
-		const carrierData = [
-			{ name: 'Verizon', count: carriers.verizon?.aggregate?.count || 0 },
-			{ name: 'AT&T', count: carriers.att?.aggregate?.count || 0 },
-			{ name: 'T-Mobile', count: carriers.tmobile?.aggregate?.count || 0 },
-			{ name: 'American Tower', count: carriers.american_tower?.aggregate?.count || 0 },
-			{ name: 'Crown Castle', count: carriers.crown_castle?.aggregate?.count || 0 },
-			{ name: 'Lead', count: carriers.ghost_lead?.aggregate?.count || 0 }
-		].filter(d => d.count > 0)
-		.sort((a, b) => b.count - a.count)
-		.map(d => ({ ...d, color: getCarrierColorByName(d.name) || '#6b7280' }));
+		// Process carrier data from tower_providers for full carrier diversity
+		const carrierCounts = new Map<string, number>();
+		const allProvidersData = await query(`
+			query AllProviders {
+				tower_providers {
+					provider {
+						name
+					}
+				}
+			}
+		`);
+		allProvidersData.tower_providers?.forEach((tp: { provider: { name: string } }) => {
+			const name = tp.provider?.name;
+			if (name) {
+				carrierCounts.set(name, (carrierCounts.get(name) || 0) + 1);
+			}
+		});
+		const carrierData = Array.from(carrierCounts.entries())
+			.map(([name, count]) => ({ name, count }))
+			.filter(d => d.count > 0)
+			.sort((a, b) => b.count - a.count)
+			.map(d => ({ ...d, color: getCarrierColorByName(d.name) || '#6b7280' }));
 
 		// Process entity data for tenant distribution by counting tower_sites per entity
 		const entityCounts = new Map<string, { name: string; count: number }>();

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 
 	let name = $state('');
@@ -51,13 +52,19 @@
 
 <div class="auth-container">
 	<div class="auth-card">
+		<div class="logo">
+			<div class="logo-square">
+				<img src="/aerocell-icon.png" alt="AeroCell" class="logo-img" />
+			</div>
+			<span>AeroCell</span>
+		</div>
 		<div class="auth-header">
 			<h1>Create Account</h1>
-			<p>Join your company's ACD dashboard</p>
+			<p>Join your company's AeroCell dashboard</p>
 		</div>
 
 		{#if error}
-			<div class="error-message">
+			<div class="error-message" transition:fly={{ y: -10, duration: 200 }}>
 				{error}
 			</div>
 		{/if}
@@ -149,16 +156,52 @@
 		align-items: center;
 		justify-content: center;
 		padding: 2rem;
-		background: linear-gradient(135deg, #0f0f1a 0%, #1e1e2e 100%);
+		background: linear-gradient(135deg, #1D2C43 0%, #253448 100%);
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	}
 
 	.auth-card {
 		width: 100%;
 		max-width: 400px;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.75rem;
 		padding: 2rem;
+	}
+
+	.logo {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		color: #FFFFFF;
+		margin-bottom: 1.5rem;
+	}
+
+	.logo-square {
+		width: 40px;
+		height: 40px;
+		min-width: 40px;
+		min-height: 40px;
+		background-color: #5EB1F7;
+		border-radius: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px;
+	}
+
+	.logo-img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
+	}
+
+	.logo span {
+		font-size: 1.5rem;
+		font-weight: 700;
+		letter-spacing: -0.025em;
 	}
 
 	.auth-header {
@@ -169,12 +212,12 @@
 	.auth-header h1 {
 		font-size: 1.5rem;
 		font-weight: 700;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		margin-bottom: 0.5rem;
 	}
 
 	.auth-header p {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.875rem;
 	}
 
@@ -203,26 +246,26 @@
 	label {
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 	}
 
 	input {
 		padding: 0.75rem 1rem;
-		background-color: #27273a;
-		border: 1px solid #3b3b50;
+		background-color: #1D2C43;
+		border: 1px solid #3d4f63;
 		border-radius: 0.5rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		font-size: 0.875rem;
 		transition: border-color 0.2s;
 	}
 
 	input:focus {
 		outline: none;
-		border-color: #3b82f6;
+		border-color: #5EB1F7;
 	}
 
 	input::placeholder {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.55);
 	}
 
 	input:disabled {
@@ -232,12 +275,12 @@
 
 	.hint {
 		font-size: 0.75rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 	}
 
 	.submit-btn {
 		padding: 0.75rem 1.5rem;
-		background-color: #3b82f6;
+		background-color: #5EB1F7;
 		color: white;
 		border: none;
 		border-radius: 0.5rem;
@@ -253,7 +296,7 @@
 	}
 
 	.submit-btn:hover:not(:disabled) {
-		background-color: #2563eb;
+		background-color: #4A9DE0;
 	}
 
 	.submit-btn:disabled {
@@ -280,11 +323,11 @@
 		margin-top: 1.5rem;
 		text-align: center;
 		font-size: 0.875rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 	}
 
 	.auth-footer a {
-		color: #3b82f6;
+		color: #5EB1F7;
 		text-decoration: none;
 		margin-left: 0.5rem;
 	}

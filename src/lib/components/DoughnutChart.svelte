@@ -42,7 +42,7 @@
           {
             data: filteredData.map((d) => d.count),
             backgroundColor: filteredData.map((d) => d.color),
-            borderColor: "#1e1e2e",
+            borderColor: "#253448",
             borderWidth: 2,
           },
         ],
@@ -119,7 +119,7 @@
 
 <style>
   .doughnut-chart {
-    background: #1e1e2e;
+    background: #253448;
     border-radius: 12px;
     padding: 1.5rem;
   }

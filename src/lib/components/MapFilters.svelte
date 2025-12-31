@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { slide } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { getCarrierName, getCarrierColorByName } from "../carriers";
 
   export interface Filters {
@@ -250,7 +252,7 @@
         </span>
       </button>
       {#if showCarriers}
-        <div class="filter-chips carrier-chips">
+        <div class="filter-chips carrier-chips" transition:slide={{ duration: 150, easing: cubicOut }}>
           {#each carrierOptions() as carrier}
             <button
               class="chip"
@@ -282,7 +284,7 @@
         </span>
       </button>
       {#if showTowerTypes}
-        <div class="filter-chips">
+        <div class="filter-chips" transition:slide={{ duration: 150, easing: cubicOut }}>
           {#each TOWER_TYPE_OPTIONS as opt}
             <button
               class="chip"
@@ -318,7 +320,7 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: 1rem 1.5rem;
-    background: #1e1e2e;
+    background: #253448;
     border-radius: 12px;
   }
 
@@ -363,7 +365,7 @@
   }
 
   .filter-badge {
-    background: #3b82f6;
+    background: #5EB1F7;
     color: white;
     font-size: 0.65rem;
     font-weight: 600;
@@ -371,6 +373,18 @@
     border-radius: 9999px;
     min-width: 1.25rem;
     text-align: center;
+    animation: badgeAppear 0.2s ease-out;
+  }
+
+  @keyframes badgeAppear {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .chevron {
@@ -398,25 +412,29 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.375rem 0.625rem;
-    border: 1px solid #27273a;
+    border: 1px solid #3d4f63;
     border-radius: 6px;
-    background: #27273a;
-    color: #a1a1aa;
+    background: #2d3e52;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.15s ease, transform 0.1s ease;
   }
 
   .chip:hover {
-    border-color: #3b82f6;
-    color: #f4f4f5;
+    border-color: #5EB1F7;
+    color: #FFFFFF;
+  }
+
+  .chip:active {
+    transform: scale(0.95);
   }
 
   .chip.active {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: #3b82f6;
-    color: #f4f4f5;
+    background: rgba(94, 177, 247, 0.15);
+    border-color: #5EB1F7;
+    color: #FFFFFF;
   }
 
   .chip.inactive {

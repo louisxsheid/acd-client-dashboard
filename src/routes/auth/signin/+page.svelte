@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition';
 	import { signIn } from '@auth/sveltekit/client';
 	import { page } from '$app/stores';
 
@@ -40,15 +41,10 @@
 <div class="auth-page">
 	<div class="auth-container">
 		<div class="logo">
-			<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-				<path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-				<path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-				<path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-				<circle cx="12" cy="12" r="3"/>
-				<path d="m16 16-1.5-1.5"/>
-			</svg>
-			<span>ACD</span>
+			<div class="logo-square">
+				<img src="/aerocell-icon.png" alt="AeroCell" class="logo-img" />
+			</div>
+			<span>AeroCell</span>
 		</div>
 
 		<div class="auth-card">
@@ -56,7 +52,7 @@
 			<p class="subtitle">Sign in to your account</p>
 
 			{#if error}
-				<div class="error-message">
+				<div class="error-message" transition:fly={{ y: -10, duration: 200 }}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<circle cx="12" cy="12" r="10"/>
 						<line x1="12" y1="8" x2="12" y2="12"/>
@@ -116,7 +112,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background-color: #0f0f1a;
+		background-color: #1D2C43;
 		padding: 1.5rem;
 		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	}
@@ -130,9 +126,29 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
-		color: #3b82f6;
+		gap: 0.75rem;
+		color: #FFFFFF;
 		margin-bottom: 2rem;
+	}
+
+	.logo-square {
+		width: 40px;
+		height: 40px;
+		min-width: 40px;
+		min-height: 40px;
+		background-color: #5EB1F7;
+		border-radius: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px;
+	}
+
+	.logo-img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		display: block;
 	}
 
 	.logo span {
@@ -142,8 +158,8 @@
 	}
 
 	.auth-card {
-		background-color: #1e1e2e;
-		border: 1px solid #2d2d3d;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 12px;
 		padding: 2rem;
 	}
@@ -151,12 +167,12 @@
 	h1 {
 		font-size: 1.25rem;
 		font-weight: 600;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		margin: 0 0 0.25rem 0;
 	}
 
 	.subtitle {
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.875rem;
 		margin: 0 0 1.5rem 0;
 	}
@@ -189,15 +205,15 @@
 	label {
 		font-size: 0.8125rem;
 		font-weight: 500;
-		color: #a1a1aa;
+		color: rgba(255, 255, 255, 0.7);
 	}
 
 	input {
 		padding: 0.625rem 0.875rem;
-		background-color: #0f0f1a;
-		border: 1px solid #2d2d3d;
+		background-color: #1D2C43;
+		border: 1px solid #3d4f63;
 		border-radius: 8px;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		font-size: 0.875rem;
 		font-family: inherit;
 		transition: border-color 0.15s, box-shadow 0.15s;
@@ -205,12 +221,12 @@
 
 	input:focus {
 		outline: none;
-		border-color: #3b82f6;
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		border-color: #5EB1F7;
+		box-shadow: 0 0 0 3px rgba(94, 177, 247, 0.1);
 	}
 
 	input::placeholder {
-		color: #52525b;
+		color: rgba(255, 255, 255, 0.55);
 	}
 
 	input:disabled {
@@ -220,7 +236,7 @@
 
 	.submit-btn {
 		padding: 0.625rem 1rem;
-		background-color: #3b82f6;
+		background-color: #5EB1F7;
 		color: white;
 		border: none;
 		border-radius: 8px;
@@ -237,7 +253,7 @@
 	}
 
 	.submit-btn:hover:not(:disabled) {
-		background-color: #2563eb;
+		background-color: #4A9DE0;
 	}
 
 	.submit-btn:disabled {
@@ -264,11 +280,11 @@
 		margin-top: 1.5rem;
 		text-align: center;
 		font-size: 0.875rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 	}
 
 	.footer-text a {
-		color: #3b82f6;
+		color: #5EB1F7;
 		text-decoration: none;
 		font-weight: 500;
 	}

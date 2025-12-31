@@ -465,40 +465,65 @@ export const TOWER_GROWTH = gql`
 `;
 
 // Data freshness - last seen distribution
+// Use variables for dates to avoid hardcoded values becoming stale
 export const DATA_FRESHNESS = gql`
-  query DataFreshness {
+  query DataFreshness(
+    $today: timestamptz!
+    $weekAgo: timestamptz!
+    $monthAgo: timestamptz!
+    $threeMonthsAgo: timestamptz!
+    $yearAgo: timestamptz!
+  ) {
     last_24h: towers_aggregate(
-      where: { last_seen_at: { _gte: "2025-04-01" } }
+      where: { last_seen_at: { _gte: $today } }
     ) {
       aggregate { count }
     }
     last_7d: towers_aggregate(
-      where: { last_seen_at: { _gte: "2025-03-25", _lt: "2025-04-01" } }
+      where: { last_seen_at: { _gte: $weekAgo, _lt: $today } }
     ) {
       aggregate { count }
     }
     last_30d: towers_aggregate(
-      where: { last_seen_at: { _gte: "2025-03-01", _lt: "2025-03-25" } }
+      where: { last_seen_at: { _gte: $monthAgo, _lt: $weekAgo } }
     ) {
       aggregate { count }
     }
     last_90d: towers_aggregate(
-      where: { last_seen_at: { _gte: "2025-01-01", _lt: "2025-03-01" } }
+      where: { last_seen_at: { _gte: $threeMonthsAgo, _lt: $monthAgo } }
     ) {
       aggregate { count }
     }
     last_year: towers_aggregate(
-      where: { last_seen_at: { _gte: "2024-04-01", _lt: "2025-01-01" } }
+      where: { last_seen_at: { _gte: $yearAgo, _lt: $threeMonthsAgo } }
     ) {
       aggregate { count }
     }
     older: towers_aggregate(
-      where: { last_seen_at: { _lt: "2024-04-01" } }
+      where: { last_seen_at: { _lt: $yearAgo } }
     ) {
       aggregate { count }
     }
   }
 `;
+
+// Helper to get data freshness date variables
+export function getDataFreshnessVariables() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const threeMonthsAgo = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+  return {
+    today: today.toISOString(),
+    weekAgo: weekAgo.toISOString(),
+    monthAgo: monthAgo.toISOString(),
+    threeMonthsAgo: threeMonthsAgo.toISOString(),
+    yearAgo: yearAgo.toISOString()
+  };
+}
 
 // Data freshness per carrier - shows when each carrier's data was last updated
 export const CARRIER_DATA_FRESHNESS = gql`
@@ -1849,9 +1874,21 @@ export const GET_TOWER_DETAILS = gql`
           county
           zip_code
           carrier
+          tower_type
           status
           remarks
           google_maps_url
+          imagery_url
+          use_code
+          zoning
+          zoning_description
+          zoning_type
+          zoning_subtype
+          zoning_code_link
+          year_built
+          improvement_value
+          land_value
+          parcel_value
           entity {
             id
             name

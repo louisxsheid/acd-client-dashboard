@@ -201,7 +201,7 @@
 	}
 
 	.chart-card {
-		background: #1e1e2e;
+		background: #253448;
 		border-radius: 12px;
 		padding: 1.5rem;
 	}
@@ -237,16 +237,23 @@
 	.tenant-bar-container {
 		flex: 1;
 		height: 8px;
-		background: #27273a;
+		background: #2d3e52;
 		border-radius: 4px;
 		overflow: hidden;
 	}
 
 	.tenant-bar {
 		height: 100%;
-		background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+		background: linear-gradient(90deg, #5EB1F7, #1D2C43);
 		border-radius: 4px;
 		min-width: 4px;
+		animation: barGrow 0.6s ease-out forwards;
+	}
+
+	@keyframes barGrow {
+		from {
+			width: 0;
+		}
 	}
 
 	.tenant-count {
@@ -258,7 +265,7 @@
 	}
 
 	.summary-card {
-		background-color: #1e1e2e;
+		background-color: #253448;
 		border-radius: 12px;
 		padding: 1.5rem;
 	}
@@ -287,8 +294,8 @@
 	}
 
 	.state-chip, .carrier-chip {
-		background: #27273a;
-		color: #a1a1aa;
+		background: #2d3e52;
+		color: rgba(255, 255, 255, 0.7);
 		padding: 0.375rem 0.75rem;
 		border-radius: 6px;
 		font-size: 0.8rem;
@@ -296,9 +303,9 @@
 	}
 
 	.carrier-chip {
-		background: #3b82f620;
-		color: #60a5fa;
-		border: 1px solid #3b82f640;
+		background: rgba(94, 177, 247, 0.15);
+		color: #5EB1F7;
+		border: 1px solid rgba(94, 177, 247, 0.3);
 	}
 
 	.quick-links {
@@ -309,14 +316,15 @@
 	}
 
 	.link-card {
-		background: #1e1e2e;
+		background: #253448;
 		border-radius: 12px;
 		transition: all 0.2s ease;
 	}
 
 	.link-card:hover {
-		background: #27273a;
+		background: #2d3e52;
 		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 	}
 
 	.link-card a {

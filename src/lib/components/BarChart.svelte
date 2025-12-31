@@ -27,10 +27,10 @@
   let chart: Chart | null = null;
 
   let total = $derived(data.reduce((sum, d) => sum + d.count, 0));
-  let filteredData = $derived(data.filter((d) => d.count > 0));
+  let chartHeight = $derived(Math.max(150, data.length * 36));
 
   function createChart() {
-    if (!canvas || filteredData.length === 0) return;
+    if (!canvas || data.length === 0) return;
 
     if (chart) {
       chart.destroy();
@@ -42,15 +42,15 @@
     chart = new Chart(ctx, {
       type: "bar",
       data: {
-        labels: filteredData.map((d) => d.name),
+        labels: data.map((d) => d.name),
         datasets: [
           {
-            data: filteredData.map((d) => d.count),
-            backgroundColor: filteredData.map((d) => d.color),
-            borderColor: filteredData.map((d) => d.color),
+            data: data.map((d) => d.count),
+            backgroundColor: data.map((d) => d.color),
+            borderColor: data.map((d) => d.color),
             borderWidth: 0,
             borderRadius: 4,
-            barThickness: 24,
+            barThickness: 20,
           },
         ],
       },
@@ -113,7 +113,7 @@
   });
 
   $effect(() => {
-    if (filteredData && canvas) {
+    if (data && canvas) {
       createChart();
     }
   });
@@ -124,10 +124,10 @@
     <h3>{title}</h3>
     <span class="chart-total">{total.toLocaleString()} total</span>
   </div>
-  {#if filteredData.length === 0}
+  {#if data.length === 0}
     <p class="no-data">No data available</p>
   {:else}
-    <div class="chart-container">
+    <div class="chart-container" style="height: {chartHeight}px">
       <canvas bind:this={canvas}></canvas>
     </div>
   {/if}
@@ -135,7 +135,7 @@
 
 <style>
   .bar-chart {
-    background: #1e1e2e;
+    background: #253448;
     border-radius: 12px;
     padding: 1.5rem;
   }
@@ -168,7 +168,6 @@
   }
 
   .chart-container {
-    height: 200px;
     position: relative;
   }
 </style>

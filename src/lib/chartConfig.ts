@@ -1,16 +1,19 @@
 // Shared Chart.js configuration for consistent styling across the dashboard
 
+// AeroCell Brand Colors
 export const chartColors = {
-  background: "#1e1e2e",
-  surface: "#27273a",
-  border: "#3b3b50",
+  background: "#253448",      // Navy light
+  surface: "#2d3e52",         // Navy lighter
+  border: "#3d4f63",          // Navy border
   text: {
-    primary: "#f4f4f5",
-    secondary: "#a1a1aa",
-    muted: "#71717a",
+    primary: "#FFFFFF",       // White
+    secondary: "rgba(255, 255, 255, 0.7)",
+    muted: "rgba(255, 255, 255, 0.5)",
   },
-  grid: "#27273a",
-  gridLight: "#3b3b50",
+  grid: "#2d3e52",
+  gridLight: "#3d4f63",
+  accent: "#5EB1F7",          // Teal
+  navy: "#1D2C43",            // Navy
 };
 
 export const chartFonts = {

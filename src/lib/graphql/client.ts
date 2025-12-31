@@ -14,15 +14,9 @@ export function createClient(token?: string) {
 				'Content-Type': 'application/json'
 			};
 
-			// If we have a JWT token, use it for authorization
+			// Use JWT token for authorization (admin queries should go through server-side client)
 			if (token) {
 				headers['Authorization'] = `Bearer ${token}`;
-			}
-
-			// For development/admin access, use admin secret
-			const secret = import.meta.env.VITE_HASURA_ADMIN_SECRET;
-			if (secret && !token) {
-				headers['x-hasura-admin-secret'] = secret;
 			}
 
 			return {
@@ -33,8 +27,8 @@ export function createClient(token?: string) {
 	});
 }
 
-// Default client instance (will use admin secret in dev)
-// Note: For SSR, use serverClient from server-client.ts instead
+// Default client instance for browser-side queries
+// Note: For server-side/admin queries, use serverClient from server-client.ts instead
 export const client = browser
 	? createClient()
 	: new Client({

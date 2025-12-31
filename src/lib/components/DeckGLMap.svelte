@@ -235,10 +235,8 @@
   // Create heatmap from cluster data - each cluster point weighted by tower_count
   function createClusterHeatmapLayers(clusterData: Cluster[], zoom: number) {
     if (clusterData.length === 0) {
-      console.log('createClusterHeatmapLayers: no cluster data');
       return [];
     }
-    console.log('createClusterHeatmapLayers: creating heatmap with', clusterData.length, 'clusters at zoom', zoom);
 
     // Smooth interpolation based on zoom level
     const minZoom = 3;
@@ -360,14 +358,10 @@
   function createH3GridLayer(precomputedData: H3HexData[]) {
     // Only use precomputed data - no more slow client-side aggregation
     if (precomputedData.length === 0) {
-      console.log('[H3] No precomputed data available yet');
       return [];
     }
 
-    console.log('[H3] Using precomputed data:', precomputedData.length, 'hexagons');
-    console.log('[H3] Sample data:', precomputedData.slice(0, 3));
     const maxCount = Math.max(...precomputedData.map(h => h.towerCount));
-    console.log('[H3] Max tower count:', maxCount);
 
     return [
       new H3HexagonLayer({
@@ -503,13 +497,10 @@
   function createLayers(towerData: Tower[], clusterData: Cluster[], precomputedH3: H3HexData[], zoom: number) {
     const layers: any[] = [];
 
-    console.log('[createLayers] showGrid:', showGrid, 'precomputedH3.length:', precomputedH3.length);
-
     // Add H3 grid layer if enabled (renders underneath other layers)
     // Uses ONLY precomputed data from database - no client-side aggregation
     if (showGrid) {
       const h3Layers = createH3GridLayer(precomputedH3);
-      console.log('[createLayers] Created H3 layers:', h3Layers.length);
       layers.push(...h3Layers);
     }
 
@@ -533,13 +524,11 @@
 
   function updateDeck() {
     if (!deck || !map) {
-      console.log('updateDeck: deck or map not ready', { deck: !!deck, map: !!map });
       return;
     }
 
     const towerData = filteredTowers();
     const layers = createLayers(towerData, clusters, h3GridData, currentZoom);
-    console.log('updateDeck: setting layers:', layers.length, 'layers, h3GridData:', h3GridData.length);
     deck.setProps({ layers });
   }
 
@@ -798,7 +787,6 @@
       // Initial load
       handleViewStateChange();
       mapReady = true;
-      console.log('Map ready, deck initialized');
       updateDeck();
     });
   });
@@ -820,14 +808,10 @@
     const h3Data = h3GridData;
     const ready = mapReady;
 
-    // Log with all data to ensure tracking works
-    console.log('DeckGL effect triggered - clusters:', clusterData.length, 'towers:', towerData.length, 'gaps:', gapsData.length, 'links:', linksData.length, 'h3:', h3Data.length, 'showGaps:', showGaps, 'showGrid:', gridEnabled, 'ready:', ready);
-
-    if (ready) {
-      // Pass h3Data directly to ensure it's tracked
+    // Use all dependencies to ensure tracking works
+    if (ready && (towerData || clusterData || gapsData || linksData || showGaps !== undefined || gridEnabled !== undefined || h3Data)) {
       const layers = createLayers(towerData, clusterData, h3Data, currentZoom);
       if (deck) {
-        console.log('Setting', layers.length, 'layers on deck');
         deck.setProps({ layers });
       }
     }
@@ -836,7 +820,6 @@
   // Handle flyTo prop changes
   $effect(() => {
     if (flyTo && map && mapReady) {
-      console.log('Flying to:', flyTo);
       map.flyTo({
         center: [flyTo.longitude, flyTo.latitude],
         zoom: flyTo.zoom ?? 15,

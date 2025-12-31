@@ -57,19 +57,18 @@
 	const HOVER_OFFSET_MIN_ZOOM = 14;
 	const HOVER_OFFSET_PIXELS = 40; // How many pixels to offset the tooltip dot
 
-	// Carrier colors - brighter for visibility on satellite imagery
+	// Carrier colors - matching carriers.ts for consistency
 	const CARRIER_COLORS: Record<string, [number, number, number]> = {
-		'AT&T': [0, 190, 255],      // Bright cyan
-		'Verizon': [255, 50, 50],    // Bright red
-		'T-Mobile': [255, 0, 150],   // Magenta
-		'US Cellular': [50, 130, 255], // Blue
-		'Dish': [255, 100, 50],      // Orange
-		'FirstNet': [50, 150, 255],  // Light blue
-		'American Tower': [255, 200, 50], // Gold
-		'Crown Castle': [150, 100, 255], // Purple
-		'Portfolio': [139, 92, 246], // Purple for portfolio
-		'Lead': [249, 115, 22],      // Orange for leads
-		default: [255, 255, 100]     // Yellow default for visibility
+		'AT&T': [0, 168, 224],       // #00a8e0 - Teal/Cyan
+		'Verizon': [205, 4, 11],     // #cd040b - Red
+		'T-Mobile': [226, 0, 116],   // #e20074 - Magenta
+		'US Cellular': [0, 87, 184], // #0057b8 - Blue
+		'Dish': [236, 28, 36],       // #ec1c24 - Red
+		'FirstNet': [0, 51, 102],    // #003366 - Dark blue
+		'Sprint': [255, 225, 0],     // #ffe100 - Yellow
+		'Portfolio': [94, 177, 247], // #5EB1F7 - AeroCell Teal
+		'Lead': [29, 44, 67],        // #1D2C43 - AeroCell Navy
+		default: [107, 114, 128]     // #6b7280 - Gray
 	};
 
 	// Transform "Ghost Lead" carrier to appropriate display type
@@ -480,21 +479,21 @@
 	}
 
 	.map-container :global(.maplibregl-ctrl-group) {
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #1a2636;
+		border: 1px solid #3d4f63;
 	}
 
 	.map-container :global(.maplibregl-ctrl-group button) {
-		background-color: #1e1e2e;
-		border-color: #3b3b50;
+		background-color: #1a2636;
+		border-color: #3d4f63;
 	}
 
 	.map-container :global(.maplibregl-ctrl-group button:hover) {
-		background-color: #27273a;
+		background-color: #2d3e52;
 	}
 
 	.map-container :global(.maplibregl-ctrl-group button + button) {
-		border-top-color: #3b3b50;
+		border-top-color: #3d4f63;
 	}
 
 	.map-container :global(.maplibregl-ctrl-icon) {
@@ -536,12 +535,12 @@
 		position: absolute;
 		bottom: 1rem;
 		left: 1rem;
-		background-color: rgba(30, 30, 46, 0.9);
-		border: 1px solid #3b3b50;
+		background-color: rgba(26, 38, 54, 0.95);
+		border: 1px solid #3d4f63;
 		padding: 0.375rem 0.75rem;
 		border-radius: 0.375rem;
 		font-size: 0.75rem;
-		color: #a1a1aa;
+		color: #e2e8f0;
 		z-index: 5;
 	}
 </style>

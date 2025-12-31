@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fly, fade } from 'svelte/transition';
 	import type { TowerSearchDocument } from '$lib/server/meilisearch';
 
 	interface Props {
@@ -8,6 +9,7 @@
 		suggestions?: TowerSearchDocument[];
 		placeholder?: string;
 		loading?: boolean;
+		error?: string | null;
 	}
 
 	let {
@@ -16,7 +18,8 @@
 		onClear,
 		suggestions = [],
 		placeholder = 'Search towers, entities, contacts, addresses...',
-		loading = false
+		loading = false,
+		error = null
 	}: Props = $props();
 
 	let query = $state('');
@@ -140,8 +143,17 @@
 			</button>
 		{/if}
 
-		{#if showDropdown && suggestions.length > 0}
-			<ul class="suggestions-dropdown" role="listbox">
+		{#if error}
+			<div class="search-error" role="alert" transition:fade={{ duration: 150 }}>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<circle cx="12" cy="12" r="10"/>
+					<line x1="12" y1="8" x2="12" y2="12"/>
+					<line x1="12" y1="16" x2="12.01" y2="16"/>
+				</svg>
+				<span>{error}</span>
+			</div>
+		{:else if showDropdown && suggestions.length > 0}
+			<ul class="suggestions-dropdown" role="listbox" transition:fly={{ y: -8, duration: 150 }}>
 				{#each suggestions as suggestion, i}
 					{@const { primary, secondary, badge } = formatSuggestion(suggestion)}
 					<li
@@ -167,7 +179,7 @@
 				{/each}
 			</ul>
 		{:else if showDropdown && query.trim().length >= 2 && !loading}
-			<div class="no-results">
+			<div class="no-results" transition:fade={{ duration: 150 }}>
 				<span>No results found</span>
 			</div>
 		{/if}
@@ -189,7 +201,7 @@
 	.search-icon {
 		position: absolute;
 		left: 1rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		pointer-events: none;
 		z-index: 1;
 	}
@@ -197,19 +209,19 @@
 	input {
 		width: 100%;
 		padding: 0.875rem 2.5rem 0.875rem 3rem;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.75rem;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		font-size: 0.9375rem;
 		transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 	}
 
 	input:focus {
 		outline: none;
-		border-color: #3b82f6;
-		background-color: #27273a;
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+		border-color: #5EB1F7;
+		background-color: #2d3e52;
+		box-shadow: 0 0 0 3px rgba(94, 177, 247, 0.15);
 	}
 
 	input::placeholder {
@@ -226,7 +238,7 @@
 		right: 0.875rem;
 		background: none;
 		border: none;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.65);
 		cursor: pointer;
 		padding: 0.375rem;
 		display: flex;
@@ -237,8 +249,8 @@
 	}
 
 	.clear-btn:hover {
-		color: #f4f4f5;
-		background-color: #3b3b50;
+		color: #FFFFFF;
+		background-color: #3d4f63;
 	}
 
 	.loading-spinner {
@@ -246,8 +258,8 @@
 		right: 0.875rem;
 		width: 18px;
 		height: 18px;
-		border: 2px solid #3b3b50;
-		border-top-color: #3b82f6;
+		border: 2px solid #3d4f63;
+		border-top-color: #5EB1F7;
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}
@@ -263,8 +275,8 @@
 		top: calc(100% + 0.5rem);
 		left: 0;
 		right: 0;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.75rem;
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 		list-style: none;
@@ -280,8 +292,9 @@
 		gap: 1rem;
 		padding: 0.875rem 1rem;
 		cursor: pointer;
-		transition: background-color 0.15s;
-		border-bottom: 1px solid #27273a;
+		transition: background-color 0.15s, border-left-color 0.15s, padding-left 0.15s;
+		border-bottom: 1px solid #2d3e52;
+		border-left: 3px solid transparent;
 	}
 
 	.suggestions-dropdown li:last-child {
@@ -290,7 +303,8 @@
 
 	.suggestions-dropdown li:hover,
 	.suggestions-dropdown li.selected {
-		background-color: #27273a;
+		background-color: #2d3e52;
+		border-left-color: #5EB1F7;
 	}
 
 	.suggestion-content {
@@ -304,7 +318,7 @@
 	.suggestion-primary {
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: #f4f4f5;
+		color: #FFFFFF;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -312,20 +326,20 @@
 
 	.suggestion-secondary {
 		font-size: 0.75rem;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 	}
 
 	.suggestion-entity {
 		font-size: 0.75rem;
-		color: #3b82f6;
+		color: #5EB1F7;
 	}
 
 	.suggestion-badge {
 		font-size: 0.6875rem;
 		font-weight: 500;
 		padding: 0.25rem 0.5rem;
-		background-color: #27273a;
-		color: #a1a1aa;
+		background-color: #2d3e52;
+		color: rgba(255, 255, 255, 0.7);
 		border-radius: 0.25rem;
 		white-space: nowrap;
 	}
@@ -335,14 +349,35 @@
 		top: calc(100% + 0.5rem);
 		left: 0;
 		right: 0;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #253448;
+		border: 1px solid #3d4f63;
 		border-radius: 0.75rem;
 		padding: 1rem;
 		text-align: center;
-		color: #71717a;
+		color: rgba(255, 255, 255, 0.6);
 		font-size: 0.875rem;
 		z-index: 100;
+	}
+
+	.search-error {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		left: 0;
+		right: 0;
+		background-color: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		border-radius: 0.75rem;
+		padding: 0.75rem 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: #ef4444;
+		font-size: 0.875rem;
+		z-index: 100;
+	}
+
+	.search-error svg {
+		flex-shrink: 0;
 	}
 
 	/* Responsive */

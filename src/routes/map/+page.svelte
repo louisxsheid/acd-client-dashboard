@@ -266,18 +266,18 @@
 		justify-content: center;
 		width: 36px;
 		height: 36px;
-		background-color: #1e1e2e;
-		border: 1px solid #3b3b50;
+		background-color: #1a2636;
+		border: 1px solid #3d4f63;
 		border-radius: 0.5rem;
-		color: #a1a1aa;
+		color: #e2e8f0;
 		cursor: pointer;
 		transition: all 0.15s;
 	}
 
 	.reset-zoom-btn:hover {
-		background-color: #27273a;
+		background-color: #2d3e52;
 		color: #f4f4f5;
-		border-color: #f4f4f5;
+		border-color: #5EB1F7;
 	}
 
 	/* Responsive adjustments */

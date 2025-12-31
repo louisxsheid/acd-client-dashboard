@@ -19,7 +19,7 @@
 
 <style>
   .stat-card {
-    background: #1e1e2e;
+    background: #253448;
     border-radius: 12px;
     padding: 1.5rem;
     display: flex;

@@ -9,6 +9,12 @@ function getMeiliKey() {
 	return env.MEILISEARCH_API_KEY || '';
 }
 
+// Escape filter values to prevent injection attacks
+function escapeFilterValue(value: string): string {
+	// Escape double quotes and backslashes to prevent filter injection
+	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 interface MeiliSearchParams {
 	q: string;
 	limit?: number;
@@ -77,16 +83,17 @@ export async function searchTowers(
 	const { limit = 20, offset = 0, filters = {} } = options;
 
 	// Build filter string for company access + optional filters
-	const filterParts: string[] = [`company_ids = "${companyId}"`];
+	// All values are escaped to prevent filter injection attacks
+	const filterParts: string[] = [`company_ids = "${escapeFilterValue(companyId)}"`];
 
 	if (filters.state) {
-		filterParts.push(`state = "${filters.state}"`);
+		filterParts.push(`state = "${escapeFilterValue(filters.state)}"`);
 	}
 	if (filters.city) {
-		filterParts.push(`city = "${filters.city}"`);
+		filterParts.push(`city = "${escapeFilterValue(filters.city)}"`);
 	}
 	if (filters.carrier) {
-		filterParts.push(`carrier = "${filters.carrier}"`);
+		filterParts.push(`carrier = "${escapeFilterValue(filters.carrier)}"`);
 	}
 
 	const searchParams: MeiliSearchParams = {
@@ -115,7 +122,7 @@ export async function searchEntities(
 	const searchParams: MeiliSearchParams = {
 		q: query,
 		limit,
-		filter: [`company_ids = "${companyId}"`],
+		filter: [`company_ids = "${escapeFilterValue(companyId)}"`],
 		attributesToHighlight: ['name', 'contact_names']
 	};
 
@@ -140,7 +147,7 @@ export async function searchTowersNearPoint(
 		q: '*',
 		limit,
 		filter: [
-			`company_ids = "${companyId}"`,
+			`company_ids = "${escapeFilterValue(companyId)}"`,
 			`_geoRadius(${lat}, ${lng}, ${radiusKm * 1000})` // radius in meters
 		],
 		sort: [`_geoPoint(${lat}, ${lng}):asc`]
