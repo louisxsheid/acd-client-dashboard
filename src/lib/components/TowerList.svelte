@@ -448,12 +448,6 @@
 												<label>Name</label>
 												<span class="entity-value">{entity.name}</span>
 											</div>
-											{#if entity.entity_type}
-												<div class="detail-item">
-													<label>Type</label>
-													<span>{entity.entity_type}</span>
-												</div>
-											{/if}
 											{#if entity.mail_address}
 												<div class="detail-item full">
 													<label>Mailing Address</label>
