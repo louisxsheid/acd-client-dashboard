@@ -38,8 +38,14 @@
 	const uniqueCarriers = $derived(() => {
 		const carriers = new Set<string>();
 		towers.forEach((t) => {
-			const label = getCarrierLabel(t);
-			if (label) carriers.add(label);
+			// Add all provider names if available
+			if (t.provider_names && t.provider_names.length > 0) {
+				t.provider_names.forEach((name) => carriers.add(name));
+			} else {
+				// Fall back to carrier label
+				const label = getCarrierLabel(t);
+				if (label) carriers.add(label);
+			}
 		});
 		return Array.from(carriers).sort();
 	});
@@ -52,12 +58,20 @@
 		return Array.from(entities).sort();
 	});
 
+	// Check if tower has a specific carrier
+	function towerHasCarrier(tower: TowerSearchDocument, carrier: string): boolean {
+		if (tower.provider_names && tower.provider_names.length > 0) {
+			return tower.provider_names.includes(carrier);
+		}
+		// Fall back to carrier label
+		return getCarrierLabel(tower) === carrier;
+	}
+
 	// Filter towers based on selected filters
 	const filteredTowers = $derived(() => {
 		return towers.filter((tower) => {
 			if (carrierFilter) {
-				const label = getCarrierLabel(tower);
-				if (label !== carrierFilter) return false;
+				if (!towerHasCarrier(tower, carrierFilter)) return false;
 			}
 			if (entityFilter) {
 				if (tower.entity_name !== entityFilter) return false;
@@ -333,16 +347,28 @@
 						onclick={() => onSelect(tower)}
 					>
 						<div class="tower-main">
-							{#if getCarrierLabel(tower)}
-								{@const carrierLabel = getCarrierLabel(tower)}
-								{@const carrierStyle = getCarrierStyle(carrierLabel)}
-								<span
-									class="carrier-badge"
-									style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
-								>
-									{carrierLabel}
-								</span>
-							{/if}
+							<div class="carrier-badges">
+								{#if tower.provider_names && tower.provider_names.length > 0}
+									{#each tower.provider_names as providerName}
+										{@const carrierStyle = getCarrierStyle(providerName)}
+										<span
+											class="carrier-badge"
+											style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
+										>
+											{providerName}
+										</span>
+									{/each}
+								{:else if getCarrierLabel(tower)}
+									{@const carrierLabel = getCarrierLabel(tower)}
+									{@const carrierStyle = getCarrierStyle(carrierLabel)}
+									<span
+										class="carrier-badge"
+										style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
+									>
+										{carrierLabel}
+									</span>
+								{/if}
+							</div>
 							<div class="tower-address">{formatAddress(tower)}</div>
 							<div class="tower-meta">
 								{#if tower.entity_name}
@@ -350,9 +376,6 @@
 								{/if}
 								{#if tower.tower_type}
 									<span class="tower-type">{tower.tower_type}</span>
-								{/if}
-								{#if tower.provider_count && tower.provider_count > 1}
-									<span class="tenant-count">{tower.provider_count} tenants</span>
 								{/if}
 							</div>
 						</div>
@@ -911,13 +934,19 @@
 		min-width: 0;
 	}
 
+	.carrier-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		margin-bottom: 0.375rem;
+	}
+
 	.carrier-badge {
 		display: inline-block;
 		font-size: 0.6875rem;
 		font-weight: 600;
 		padding: 0.25rem 0.5rem;
 		border-radius: 0.25rem;
-		margin-bottom: 0.375rem;
 		letter-spacing: 0.01em;
 	}
 
@@ -959,15 +988,6 @@
 		border: 1px solid #3b3b50;
 	}
 
-	.tenant-count {
-		font-size: 0.625rem;
-		font-weight: 600;
-		color: #22c55e;
-		background-color: rgba(34, 197, 94, 0.1);
-		padding: 0.125rem 0.375rem;
-		border-radius: 0.25rem;
-		border: 1px solid rgba(34, 197, 94, 0.3);
-	}
 
 	.tower-side {
 		display: flex;

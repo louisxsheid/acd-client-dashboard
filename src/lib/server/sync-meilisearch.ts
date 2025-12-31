@@ -8,7 +8,8 @@
  * - On data changes via Hasura event triggers
  */
 
-import { pool } from './db';
+import { pool as getPool } from './db';
+const pool = getPool();
 import {
 	indexTowers,
 	indexEntities,
@@ -97,7 +98,14 @@ async function syncAllTowers(): Promise<number> {
 					SELECT COUNT(*)::int
 					FROM tower_providers tp
 					WHERE tp.tower_id = t.id
-				) as provider_count
+				) as provider_count,
+				-- Get provider names
+				(
+					SELECT array_agg(p.name ORDER BY p.name)
+					FROM tower_providers tp
+					JOIN providers p ON p.id = tp.provider_id
+					WHERE tp.tower_id = t.id
+				) as provider_names
 			FROM towers t
 			LEFT JOIN tower_sites ts ON ts.tower_id = t.id
 			LEFT JOIN entities e ON ts.entity_id = e.id
@@ -154,6 +162,7 @@ interface TowerRow {
 		access_state: string;
 	}> | null;
 	provider_count: number;
+	provider_names: string[] | null;
 }
 
 function rowToTowerDocument(row: TowerRow): TowerSearchDocument {
@@ -207,6 +216,7 @@ function rowToTowerDocument(row: TowerRow): TowerSearchDocument {
 		access_states: accessStates,
 
 		provider_count: row.provider_count || 0,
+		provider_names: row.provider_names || [],
 
 		created_at: row.created_at,
 		updated_at: row.updated_at
@@ -376,7 +386,9 @@ async function syncSingleTower(towerId: number): Promise<void> {
 			FROM entity_contacts ec WHERE ec.entity_id = e.id) as contacts,
 			(SELECT json_agg(json_build_object('company_id', ct.company_id, 'access_state', ct.access_state))
 			FROM company_towers ct WHERE ct.tower_id = t.id) as company_access,
-			(SELECT COUNT(*)::int FROM tower_providers tp WHERE tp.tower_id = t.id) as provider_count
+			(SELECT COUNT(*)::int FROM tower_providers tp WHERE tp.tower_id = t.id) as provider_count,
+			(SELECT array_agg(p.name ORDER BY p.name) FROM tower_providers tp
+			 JOIN providers p ON p.id = tp.provider_id WHERE tp.tower_id = t.id) as provider_names
 		FROM towers t
 		LEFT JOIN tower_sites ts ON ts.tower_id = t.id
 		LEFT JOIN entities e ON ts.entity_id = e.id

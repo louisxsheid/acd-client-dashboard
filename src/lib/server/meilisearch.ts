@@ -322,6 +322,7 @@ export interface TowerSearchDocument {
 
 	// Multi-tenant info
 	provider_count?: number;         // Number of carriers/tenants on tower
+	provider_names?: string[];       // ["Verizon", "AT&T", "AMT"]
 
 	// Metadata
 	created_at?: string;
