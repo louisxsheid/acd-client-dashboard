@@ -1849,9 +1849,30 @@ export const GET_TOWER_DETAILS = gql`
           county
           zip_code
           carrier
+          status
+          remarks
+          google_maps_url
           entity {
             id
             name
+            entity_type
+            mail_address
+            mail_city
+            mail_state
+            mail_zip
+            entity_contacts(order_by: { contact_order: asc }) {
+              id
+              contact_order
+              first_name
+              last_name
+              full_name
+              title
+              phone_primary
+              phone_primary_dnc
+              phone_secondary
+              email_primary
+              email_secondary
+            }
           }
         }
         tower_providers {
