@@ -320,6 +320,9 @@ export interface TowerSearchDocument {
 	company_ids: string[];           // Which companies have access
 	access_states: Record<string, string>; // { "company-uuid": "LICENSED" }
 
+	// Multi-tenant info
+	provider_count?: number;         // Number of carriers/tenants on tower
+
 	// Metadata
 	created_at?: string;
 	updated_at?: string;

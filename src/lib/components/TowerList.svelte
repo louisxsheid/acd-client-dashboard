@@ -351,6 +351,9 @@
 								{#if tower.tower_type}
 									<span class="tower-type">{tower.tower_type}</span>
 								{/if}
+								{#if tower.provider_count && tower.provider_count > 1}
+									<span class="tenant-count">{tower.provider_count} tenants</span>
+								{/if}
 							</div>
 						</div>
 						<div class="tower-side">
@@ -954,6 +957,16 @@
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		border: 1px solid #3b3b50;
+	}
+
+	.tenant-count {
+		font-size: 0.625rem;
+		font-weight: 600;
+		color: #22c55e;
+		background-color: rgba(34, 197, 94, 0.1);
+		padding: 0.125rem 0.375rem;
+		border-radius: 0.25rem;
+		border: 1px solid rgba(34, 197, 94, 0.3);
 	}
 
 	.tower-side {

@@ -91,7 +91,13 @@ async function syncAllTowers(): Promise<number> {
 					))
 					FROM company_towers ct
 					WHERE ct.tower_id = t.id
-				) as company_access
+				) as company_access,
+				-- Count providers/carriers on tower
+				(
+					SELECT COUNT(*)::int
+					FROM tower_providers tp
+					WHERE tp.tower_id = t.id
+				) as provider_count
 			FROM towers t
 			LEFT JOIN tower_sites ts ON ts.tower_id = t.id
 			LEFT JOIN entities e ON ts.entity_id = e.id
@@ -147,6 +153,7 @@ interface TowerRow {
 		company_id: string;
 		access_state: string;
 	}> | null;
+	provider_count: number;
 }
 
 function rowToTowerDocument(row: TowerRow): TowerSearchDocument {
@@ -198,6 +205,8 @@ function rowToTowerDocument(row: TowerRow): TowerSearchDocument {
 
 		company_ids: companyIds,
 		access_states: accessStates,
+
+		provider_count: row.provider_count || 0,
 
 		created_at: row.created_at,
 		updated_at: row.updated_at
@@ -366,7 +375,8 @@ async function syncSingleTower(towerId: number): Promise<void> {
 			) ORDER BY ec.contact_order)
 			FROM entity_contacts ec WHERE ec.entity_id = e.id) as contacts,
 			(SELECT json_agg(json_build_object('company_id', ct.company_id, 'access_state', ct.access_state))
-			FROM company_towers ct WHERE ct.tower_id = t.id) as company_access
+			FROM company_towers ct WHERE ct.tower_id = t.id) as company_access,
+			(SELECT COUNT(*)::int FROM tower_providers tp WHERE tp.tower_id = t.id) as provider_count
 		FROM towers t
 		LEFT JOIN tower_sites ts ON ts.tower_id = t.id
 		LEFT JOIN entities e ON ts.entity_id = e.id
