@@ -5,16 +5,23 @@ import { sequence } from '@sveltejs/kit/hooks';
 // Routes that require authentication
 const protectedRoutes = ['/map', '/analytics', '/settings', '/api-keys'];
 
-// Routes that should redirect to /map if already authenticated
-const authRoutes = ['/auth/signin', '/auth/signup'];
+// Routes that should redirect to /map if already authenticated (exact matches only)
+const authPages = ['/auth/signin', '/auth/signup'];
 
 const protectionHandle: Handle = async ({ event, resolve }) => {
+	const pathname = event.url.pathname;
+
+	// Skip Auth.js internal routes - let authHandle process them
+	if (pathname.startsWith('/auth/') && !authPages.includes(pathname)) {
+		return resolve(event);
+	}
+
 	const session = await event.locals.auth?.();
 
 	// Check if trying to access protected route without auth
-	if (protectedRoutes.some((route) => event.url.pathname.startsWith(route))) {
+	if (protectedRoutes.some((route) => pathname.startsWith(route))) {
 		if (!session?.user) {
-			const redirectUrl = encodeURIComponent(event.url.pathname);
+			const redirectUrl = encodeURIComponent(pathname);
 			throw redirect(303, `/auth/signin?redirect=${redirectUrl}`);
 		}
 
@@ -29,8 +36,8 @@ const protectionHandle: Handle = async ({ event, resolve }) => {
 		};
 	}
 
-	// Redirect authenticated users away from auth pages
-	if (authRoutes.some((route) => event.url.pathname.startsWith(route))) {
+	// Redirect authenticated users away from signin/signup pages
+	if (authPages.includes(pathname)) {
 		if (session?.user) {
 			throw redirect(303, '/map');
 		}
