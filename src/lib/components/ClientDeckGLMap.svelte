@@ -41,15 +41,15 @@
 	// Display count - use totalTowers if provided, otherwise use towers array length
 	const displayCount = $derived(totalTowers ?? towers.length);
 
-	// Track previous zoom to detect zoom out
-	let previousZoom = $state(initialView.zoom);
+	// Track previous zoom to detect zoom out - initialized lazily on mount
+	let previousZoom = $state(4);
 	// Zoom threshold below which we request deselection
 	const DESELECT_ZOOM_THRESHOLD = 10;
 
 	let container: HTMLDivElement;
 	let map: maplibregl.Map | null = null;
 	let deck: Deck | null = null;
-	let currentZoom = $state(initialView.zoom);
+	let currentZoom = $state(4);
 	let mapReady = $state(false);
 	let hoveredTowerId = $state<number | null>(null);
 
@@ -102,11 +102,10 @@
 
 		// Calculate pixel position offset (up and to the right)
 		const point = map.project([tower.longitude, tower.latitude]);
-		const offsetPoint = {
-			x: point.x + HOVER_OFFSET_PIXELS,
-			y: point.y - HOVER_OFFSET_PIXELS
-		};
-		const lngLat = map.unproject(offsetPoint);
+		const lngLat = map.unproject([
+			point.x + HOVER_OFFSET_PIXELS,
+			point.y - HOVER_OFFSET_PIXELS
+		]);
 		return [lngLat.lng, lngLat.lat];
 	}
 
@@ -302,6 +301,9 @@
 
 		map.on('load', () => {
 			mapReady = true;
+			// Initialize zoom tracking with actual map zoom
+			currentZoom = map!.getZoom();
+			previousZoom = currentZoom;
 
 			// Initialize deck.gl
 			deck = new Deck({

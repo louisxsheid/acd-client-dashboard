@@ -77,8 +77,8 @@
 			const result = await response.json();
 			allTowers = result.hits || [];
 			total = result.total || 0;
-		} catch (err) {
-			console.error('Search failed:', err);
+		} catch {
+			// Search failed silently - user can retry
 		} finally {
 			listLoading = false;
 		}
@@ -104,8 +104,8 @@
 				const result = await response.json();
 				selectedTowerDetails = result.tower;
 			}
-		} catch (err) {
-			console.error('Failed to load tower details:', err);
+		} catch {
+			// Failed to load details - user can retry by clicking again
 		} finally {
 			detailsLoading = false;
 		}
@@ -174,8 +174,8 @@
 			const allResult = await allTowersResponse.json();
 			allTowers = allResult.hits || [];
 			total = allResult.total || 0;
-		} catch (err) {
-			console.error('Failed to load initial towers:', err);
+		} catch {
+			// Failed to load towers - page will show empty state
 		} finally {
 			loading = false;
 		}

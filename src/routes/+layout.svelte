@@ -6,7 +6,7 @@
 
 	let { children, data }: { children: Snippet; data: { session: any } } = $props();
 
-	const session = data.session;
+	const session = $derived(data.session);
 	let mobileMenuOpen = $state(false);
 	let userMenuOpen = $state(false);
 	let mobileMenuRef: HTMLDivElement | null = $state(null);
