@@ -198,11 +198,27 @@
 		return { bg: '#3f3f46', text: '#e4e4e7' };
 	}
 
-	// Get the display carrier label - shows "Portfolio" for Oncor entities
+	// Transform provider/carrier name for display - "Ghost Lead" becomes "Portfolio" or "Lead"
+	function getDisplayProviderName(providerName: string, entityName?: string): string {
+		if (providerName === 'Ghost Lead') {
+			// Oncor entities show "Portfolio", others show "Lead"
+			if (entityName?.toLowerCase().includes('oncor')) {
+				return 'Portfolio';
+			}
+			return 'Lead';
+		}
+		return providerName;
+	}
+
+	// Get the display carrier label - shows "Portfolio" for Oncor entities, "Lead" for other Ghost Leads
 	function getCarrierLabel(tower: TowerSearchDocument): string | undefined {
 		// If entity name is Oncor, show "Portfolio" instead of carrier
 		if (tower.entity_name?.toLowerCase().includes('oncor')) {
 			return 'Portfolio';
+		}
+		// Transform "Ghost Lead" carrier to "Lead"
+		if (tower.carrier === 'Ghost Lead') {
+			return 'Lead';
 		}
 		return tower.carrier;
 	}
@@ -356,12 +372,13 @@
 							<div class="carrier-badges">
 								{#if tower.provider_names && tower.provider_names.length > 0}
 									{#each tower.provider_names as providerName}
-										{@const carrierStyle = getCarrierStyle(providerName)}
+										{@const displayName = getDisplayProviderName(providerName, tower.entity_name)}
+										{@const carrierStyle = getCarrierStyle(displayName)}
 										<span
 											class="carrier-badge"
 											style="background-color: {carrierStyle.bg}; color: {carrierStyle.text}"
 										>
-											{providerName}
+											{displayName}
 										</span>
 									{/each}
 								{:else if getCarrierLabel(tower)}

@@ -72,10 +72,23 @@
 		default: [255, 255, 100]     // Yellow default for visibility
 	};
 
-	function getCarrierColor(carrier: string | undefined): [number, number, number] {
-		if (!carrier) return CARRIER_COLORS.default;
+	// Transform "Ghost Lead" carrier to appropriate display type
+	function getDisplayCarrier(carrier: string | undefined, entityName?: string): string | undefined {
+		if (carrier === 'Ghost Lead') {
+			// Oncor entities show "Portfolio", others show "Lead"
+			if (entityName?.toLowerCase().includes('oncor')) {
+				return 'Portfolio';
+			}
+			return 'Lead';
+		}
+		return carrier;
+	}
+
+	function getCarrierColor(carrier: string | undefined, entityName?: string): [number, number, number] {
+		const displayCarrier = getDisplayCarrier(carrier, entityName);
+		if (!displayCarrier) return CARRIER_COLORS.default;
 		for (const [key, color] of Object.entries(CARRIER_COLORS)) {
-			if (carrier.toLowerCase().includes(key.toLowerCase())) {
+			if (displayCarrier.toLowerCase().includes(key.toLowerCase())) {
 				return color;
 			}
 		}
@@ -182,7 +195,7 @@
 					if (d.id === selectedTowerId) {
 						return [255, 255, 255, 255]; // White for selected
 					}
-					return [...getCarrierColor(d.carrier), 255];
+					return [...getCarrierColor(d.carrier, d.entity_name), 255];
 				},
 				getLineColor: (d) => {
 					if (d.id === selectedTowerId) {
