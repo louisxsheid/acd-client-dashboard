@@ -55,6 +55,17 @@
 	let hoveredTower = $state<TowerSearchDocument | null>(null);
 	let tooltipPos = $state<{ x: number; y: number } | null>(null);
 
+	// Pin spreading state - for separating overlapping pins on hover
+	let spreadPins = $state<Map<number, [number, number]>>(new Map());
+	let spreadCenterId = $state<number | null>(null);
+	let spreadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let spreadCollapseTimer: ReturnType<typeof setTimeout> | null = null;
+
+	const SPREAD_RADIUS_PX = 40; // Spread radius in screen pixels
+	const OVERLAP_THRESHOLD_PX = 30; // Distance threshold to consider pins overlapping
+	const SPREAD_DEBOUNCE_MS = 80; // Debounce delay for spread calculation
+	const SPREAD_COLLAPSE_DELAY_MS = 5000; // Delay before collapsing spread (allows clicking)
+
 	// Hover offset threshold - only offset at zoom levels >= this
 	const HOVER_OFFSET_MIN_ZOOM = 14;
 	const HOVER_OFFSET_PIXELS = 40; // How many pixels to offset the tooltip dot
@@ -98,6 +109,56 @@
 			}
 		}
 		return CARRIER_COLORS.default;
+	}
+
+	// Find pins that overlap with the hovered pin (within screen pixel distance)
+	function findOverlappingPins(hoveredId: number): number[] {
+		if (!map) return [];
+
+		const hovered = towers.find((t) => t.id === hoveredId);
+		if (!hovered) return [];
+
+		const hoveredPoint = map.project([hovered.longitude, hovered.latitude]);
+		const overlapping: number[] = [];
+
+		for (const tower of towers) {
+			if (tower.id === hoveredId) continue;
+			const point = map.project([tower.longitude, tower.latitude]);
+			const dx = point.x - hoveredPoint.x;
+			const dy = point.y - hoveredPoint.y;
+			const dist = Math.sqrt(dx * dx + dy * dy);
+			if (dist < OVERLAP_THRESHOLD_PX) {
+				overlapping.push(tower.id);
+			}
+		}
+
+		return overlapping;
+	}
+
+	// Calculate spread positions for overlapping pins in a circular pattern
+	function calculateSpreadPositions(
+		centerId: number,
+		overlappingIds: number[]
+	): Map<number, [number, number]> {
+		if (!map) return new Map();
+
+		const center = towers.find((t) => t.id === centerId);
+		if (!center) return new Map();
+
+		const allIds = [centerId, ...overlappingIds];
+		const n = allIds.length;
+		const positions = new Map<number, [number, number]>();
+		const centerPoint = map.project([center.longitude, center.latitude]);
+
+		for (let i = 0; i < n; i++) {
+			const angle = (2 * Math.PI * i) / n - Math.PI / 2; // Start from top
+			const offsetX = SPREAD_RADIUS_PX * Math.cos(angle);
+			const offsetY = SPREAD_RADIUS_PX * Math.sin(angle);
+			const newPoint = map.unproject([centerPoint.x + offsetX, centerPoint.y + offsetY]);
+			positions.set(allIds[i], [newPoint.lng, newPoint.lat]);
+		}
+
+		return positions;
 	}
 
 	// Calculate offset position for active (selected or hovered) tower
@@ -153,7 +214,12 @@
 					anchorY: 112,
 					mask: true
 				}),
-				getPosition: (d) => [d.longitude, d.latitude],
+				getPosition: (d) => {
+					// Use spread position if this pin is part of a spread cluster
+					const spreadPos = spreadPins.get(d.id);
+					if (spreadPos) return spreadPos;
+					return [d.longitude, d.latitude];
+				},
 				getSize: (d) => (d.id === hoveredTowerId ? 48 : 40),
 				sizeUnits: 'pixels',
 				sizeMinPixels: 28,
@@ -162,9 +228,11 @@
 				billboard: true,
 				alphaCutoff: 0.01,
 				transitions: {
+					getPosition: { duration: 200, easing: (t: number) => t * (2 - t) },
 					getSize: { duration: 150, easing: (t: number) => t }
 				},
 				updateTriggers: {
+					getPosition: [spreadCenterId, spreadPins.size],
 					getSize: hoveredTowerId
 				}
 			}),
@@ -180,7 +248,12 @@
 					anchorY: 112,
 					mask: false
 				}),
-				getPosition: (d) => [d.longitude, d.latitude],
+				getPosition: (d) => {
+					// Use spread position if this pin is part of a spread cluster
+					const spreadPos = spreadPins.get(d.id);
+					if (spreadPos) return spreadPos;
+					return [d.longitude, d.latitude];
+				},
 				getSize: (d) => (d.id === hoveredTowerId ? 48 : 40),
 				sizeUnits: 'pixels',
 				sizeMinPixels: 28,
@@ -188,9 +261,11 @@
 				billboard: true,
 				alphaCutoff: 0.01,
 				transitions: {
+					getPosition: { duration: 200, easing: (t: number) => t * (2 - t) },
 					getSize: { duration: 150, easing: (t: number) => t }
 				},
 				updateTriggers: {
+					getPosition: [spreadCenterId, spreadPins.size],
 					getSize: hoveredTowerId
 				}
 			}),
@@ -250,10 +325,12 @@
 	// React to data changes - create a unique key from tower IDs to detect array changes
 	$effect(() => {
 		// Create a fingerprint of the towers array to detect changes
-		const towersKey = towers.map(t => t.id).join(',');
+		const towersKey = towers.map((t) => t.id).join(',');
 		const _selectedId = selectedTowerId;
 		const _hoveredId = hoveredTowerId;
 		const _zoom = currentZoom;
+		const _spreadCenter = spreadCenterId;
+		const _spreadSize = spreadPins.size;
 		// Use towersKey in closure to ensure effect re-runs when towers change
 		if (towersKey !== undefined) {
 			updateLayers();
@@ -344,10 +421,51 @@
 						hoveredTowerId = info.object.id;
 						hoveredTower = info.object;
 						tooltipPos = { x: info.x ?? 0, y: info.y ?? 0 };
+
+						// Cancel any pending collapse - we're still on pins
+						if (spreadCollapseTimer) {
+							clearTimeout(spreadCollapseTimer);
+							spreadCollapseTimer = null;
+						}
+
+						// Skip recalculation if this pin is already part of current spread
+						if (spreadPins.has(info.object.id)) {
+							return;
+						}
+
+						// Clear any pending spread calculation
+						if (spreadDebounceTimer) {
+							clearTimeout(spreadDebounceTimer);
+						}
+
+						// Debounce spread calculation
+						const hoveredId = info.object.id;
+						spreadDebounceTimer = setTimeout(() => {
+							const overlapping = findOverlappingPins(hoveredId);
+							if (overlapping.length > 0) {
+								spreadCenterId = hoveredId;
+								spreadPins = calculateSpreadPositions(hoveredId, overlapping);
+							} else if (spreadPins.size > 0) {
+								spreadPins = new Map();
+								spreadCenterId = null;
+							}
+						}, SPREAD_DEBOUNCE_MS);
 					} else {
 						hoveredTowerId = null;
 						hoveredTower = null;
 						tooltipPos = null;
+						if (spreadDebounceTimer) {
+							clearTimeout(spreadDebounceTimer);
+							spreadDebounceTimer = null;
+						}
+						// Delay collapse so user can move between spread pins
+						if (spreadPins.size > 0 && !spreadCollapseTimer) {
+							spreadCollapseTimer = setTimeout(() => {
+								spreadPins = new Map();
+								spreadCenterId = null;
+								spreadCollapseTimer = null;
+							}, SPREAD_COLLAPSE_DELAY_MS);
+						}
 					}
 				}
 			});
@@ -414,6 +532,8 @@
 	});
 
 	onDestroy(() => {
+		if (spreadDebounceTimer) clearTimeout(spreadDebounceTimer);
+		if (spreadCollapseTimer) clearTimeout(spreadCollapseTimer);
 		deck?.finalize();
 		map?.remove();
 	});
