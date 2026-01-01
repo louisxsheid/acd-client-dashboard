@@ -3,8 +3,14 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/stores';
+	import TopographicBackground from '$lib/components/TopographicBackground.svelte';
 
 	let { children, data }: { children: Snippet; data: { session: any } } = $props();
+
+	// Show topo background on analytics and export pages
+	const showTopoBg = $derived(
+		$page.url.pathname === '/analytics' || $page.url.pathname === '/export'
+	);
 
 	const session = $derived(data.session);
 	let mobileMenuOpen = $state(false);
@@ -74,6 +80,7 @@
 }} />
 
 <div class="app">
+	<TopographicBackground visible={showTopoBg} />
 	{#if session?.user}
 		<header>
 			<nav>

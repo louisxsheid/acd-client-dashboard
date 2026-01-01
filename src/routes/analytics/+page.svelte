@@ -19,12 +19,14 @@
 	<title>Analytics - Tower Portfolio</title>
 </svelte:head>
 
-<div class="analytics-page">
-	<header class="page-header">
+<div class="page-title-bar">
+	<div class="page-title-content">
 		<h1>Analytics</h1>
 		<p class="subtitle">Tower portfolio intelligence and insights</p>
-	</header>
+	</div>
+</div>
 
+<div class="analytics-page">
 	{#if data.error}
 		<div class="error-banner">
 			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -130,26 +132,43 @@
 		</div>
 	</section>
 
-	<!-- Geographic Summary -->
-	{#if data.states && data.states.length > 0}
-		<section class="summary-card fade-in-up delay-3">
-			<div class="summary-header">
-				<h2>Geographic Coverage</h2>
-				<p class="summary-desc">States with tower presence</p>
-			</div>
-			<div class="states-grid">
-				{#each data.states as state}
-					<div class="state-chip">{state}</div>
-				{/each}
-			</div>
-		</section>
-	{/if}
-</div>
+	</div>
 
 <!-- Contact Sales Modal -->
 <ContactSalesModal open={showContactModal} onClose={() => showContactModal = false} />
 
 <style>
+	.page-title-bar {
+		background-color: #253448;
+		border-bottom: 1px solid #3d4f63;
+		padding: 1.5rem 2rem;
+		position: sticky;
+		top: 56px; /* Below nav header */
+		z-index: 50;
+	}
+
+	.page-title-content {
+		max-width: 1200px;
+		margin: 0 auto;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.75rem;
+	}
+
+	.page-title-bar h1 {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: #f4f4f5;
+		margin: 0;
+	}
+
+	.page-title-bar .subtitle {
+		font-size: 0.875rem;
+		color: #71717a;
+		margin: 0;
+	}
+
 	.analytics-page {
 		padding: 2rem;
 		width: 100%;
@@ -158,28 +177,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
-	}
-
-	.page-header {
-		margin-bottom: 0.5rem;
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 0.75rem;
-	}
-
-	h1 {
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: #f4f4f5;
-		margin: 0;
-	}
-
-	.subtitle {
-		font-size: 0.875rem;
-		color: #71717a;
-		margin: 0;
-		flex: 1;
+		position: relative;
 	}
 
 	.error-banner {
@@ -286,45 +284,11 @@
 		box-shadow: 0 4px 12px rgba(94, 177, 247, 0.3);
 	}
 
-	.summary-card {
-		background-color: #253448;
-		border-radius: 12px;
-		padding: 1.5rem;
-	}
-
-	.summary-header {
-		margin-bottom: 1.25rem;
-	}
-
-	.summary-header h2 {
-		margin: 0;
-		font-size: 1rem;
-		color: #f4f4f5;
-		font-weight: 600;
-	}
-
-	.summary-desc {
-		margin: 0.25rem 0 0;
-		font-size: 0.8rem;
-		color: #71717a;
-	}
-
-	.states-grid {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.state-chip {
-		background: #2d3e52;
-		color: rgba(255, 255, 255, 0.7);
-		padding: 0.375rem 0.75rem;
-		border-radius: 6px;
-		font-size: 0.8rem;
-		font-weight: 500;
-	}
-
 	@media (max-width: 768px) {
+		.page-title-bar {
+			padding: 1rem;
+		}
+
 		.analytics-page {
 			padding: 1rem;
 		}

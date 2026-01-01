@@ -83,12 +83,14 @@
 	<title>Export - Tower Portfolio</title>
 </svelte:head>
 
-<div class="export-page">
-	<header class="page-header">
+<div class="page-title-bar">
+	<div class="page-title-content">
 		<h1>Export Data</h1>
 		<p class="subtitle">Download your tower portfolio data</p>
-	</header>
+	</div>
+</div>
 
+<div class="export-page">
 	{#if data.error}
 		<div class="error-banner">
 			<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -238,35 +240,46 @@
 <ContactSalesModal open={showContactModal} onClose={() => showContactModal = false} />
 
 <style>
-	.export-page {
-		padding: 2rem;
-		width: 100%;
-		max-width: 1000px;
-		margin: 0 auto;
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
+	.page-title-bar {
+		background-color: #253448;
+		border-bottom: 1px solid #3d4f63;
+		padding: 1.5rem 2rem;
+		position: sticky;
+		top: 56px; /* Below nav header */
+		z-index: 50;
 	}
 
-	.page-header {
-		margin-bottom: 0.5rem;
+	.page-title-content {
+		max-width: 1200px;
+		margin: 0 auto;
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: 0.75rem;
 	}
 
-	h1 {
+	.page-title-bar h1 {
 		font-size: 1.5rem;
 		font-weight: 600;
 		color: #f4f4f5;
 		margin: 0;
 	}
 
-	.subtitle {
+	.page-title-bar .subtitle {
 		font-size: 0.875rem;
 		color: #71717a;
 		margin: 0;
+	}
+
+	.export-page {
+		padding: 2rem;
+		width: 100%;
+		max-width: 1200px;
+		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		position: relative;
 	}
 
 	.error-banner {
@@ -594,6 +607,10 @@
 	}
 
 	@media (max-width: 768px) {
+		.page-title-bar {
+			padding: 1rem;
+		}
+
 		.export-page {
 			padding: 1rem;
 		}
