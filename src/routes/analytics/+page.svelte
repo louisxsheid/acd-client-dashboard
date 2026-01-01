@@ -1,8 +1,9 @@
 <script lang="ts">
 	import StatCard from '$lib/components/StatCard.svelte';
 	import EntityTypeChart from '$lib/components/EntityTypeChart.svelte';
+	import TowerTypeChart from '$lib/components/TowerTypeChart.svelte';
+	import CarrierChart from '$lib/components/CarrierChart.svelte';
 	import ENDCGauge from '$lib/components/ENDCGauge.svelte';
-	import CarrierComparisonTable from '$lib/components/CarrierComparisonTable.svelte';
 	import ContactSalesModal from '$lib/components/ContactSalesModal.svelte';
 
 	let { data } = $props();
@@ -22,9 +23,6 @@
 	<header class="page-header">
 		<h1>Analytics</h1>
 		<p class="subtitle">Tower portfolio intelligence and insights</p>
-		{#if data.accessTier === 'SAMPLE'}
-			<span class="tier-badge">Sample Access</span>
-		{/if}
 	</header>
 
 	{#if data.error}
@@ -53,14 +51,14 @@
 			color="#8b5cf6"
 		/>
 		<StatCard
-			title="Contact Coverage"
+			title="Contacts Unlocked"
 			value="{data.contactCoveragePercent}%"
 			icon="📧"
 			color="#22c55e"
 		/>
 		<StatCard
-			title="5G/EN-DC Rate"
-			value="{data.endcRate}%"
+			title="5G Capable"
+			value={data.endcRate > 0 ? `${data.endcRate}%` : "🔒"}
 			icon="📶"
 			color="#f59e0b"
 		/>
@@ -72,22 +70,17 @@
 		/>
 	</section>
 
-	<!-- Entity Intelligence Section -->
-	{#if data.entityTypeData && data.entityTypeData.length > 0}
-		<section class="section-header fade-in-up delay-1">
-			<h2>Entity Intelligence</h2>
-			<p class="section-desc">Owner type distribution</p>
-		</section>
-
-		<section class="fade-in-up delay-1">
+	<!-- Charts Row -->
+	<section class="charts-row fade-in-up delay-1">
+		{#if data.entityTypeData && data.entityTypeData.length > 0}
 			<EntityTypeChart data={data.entityTypeData} />
-		</section>
-	{/if}
-
-	<!-- Network Quality Section -->
-	<section class="section-header fade-in-up delay-2">
-		<h2>Network Quality</h2>
-		<p class="section-desc">5G adoption and carrier infrastructure</p>
+		{/if}
+		{#if data.typeData && data.typeData.length > 0}
+			<TowerTypeChart data={data.typeData} />
+		{/if}
+		{#if data.simpleCarrierData && data.simpleCarrierData.length > 0}
+			<CarrierChart data={data.simpleCarrierData} />
+		{/if}
 	</section>
 
 	<section class="two-column-grid fade-in-up delay-2">
@@ -105,7 +98,7 @@
 						<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
 						<path d="M7 11V7a5 5 0 0 1 10 0v4"/>
 					</svg>
-					<span class="locked-title">5G/EN-DC Adoption</span>
+					<span class="locked-title">5G Capable Leads</span>
 				</div>
 				<p class="locked-desc">Unlock to see detailed 5G network adoption metrics</p>
 				<button class="unlock-btn" type="button" onclick={handleUnlock}>Click to Unlock</button>
@@ -117,12 +110,24 @@
 				endcTowers={data.endcCapable}
 			/>
 		{/if}
-		<CarrierComparisonTable
-			carriers={data.carrierData}
-			totalCarriers={data.carrierDataTotal}
-			isLocked={data.accessTier === 'SAMPLE'}
-			onUnlock={handleUnlock}
-		/>
+		<div class="locked-gauge">
+			<div class="locked-header">
+				<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#rfGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<defs>
+						<linearGradient id="rfGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+							<stop offset="0%" stop-color="#B0BEC5" />
+							<stop offset="50%" stop-color="#7CCFEE" />
+							<stop offset="100%" stop-color="#5EB1F7" />
+						</linearGradient>
+					</defs>
+					<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+					<path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+				</svg>
+				<span class="locked-title">RF & Technical Data</span>
+			</div>
+			<p class="locked-desc">Unlock spectrum bands, antenna configs, and signal coverage analysis</p>
+			<button class="unlock-btn" type="button" onclick={handleUnlock}>Click to Unlock</button>
+		</div>
 	</section>
 
 	<!-- Geographic Summary -->
@@ -177,33 +182,6 @@
 		flex: 1;
 	}
 
-	.tier-badge {
-		background: rgba(245, 158, 11, 0.15);
-		color: #f59e0b;
-		padding: 0.25rem 0.75rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		font-weight: 500;
-	}
-
-	.section-header {
-		margin-top: 1rem;
-		margin-bottom: -0.5rem;
-	}
-
-	.section-header h2 {
-		margin: 0;
-		font-size: 1.125rem;
-		color: #f4f4f5;
-		font-weight: 600;
-	}
-
-	.section-desc {
-		margin: 0.25rem 0 0;
-		font-size: 0.8rem;
-		color: #71717a;
-	}
-
 	.error-banner {
 		background-color: rgba(239, 68, 68, 0.1);
 		border: 1px solid rgba(239, 68, 68, 0.3);
@@ -241,6 +219,12 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 		gap: 1rem;
+	}
+
+	.charts-row {
+		display: flex;
+		gap: 1.5rem;
+		flex-wrap: wrap;
 	}
 
 	.two-column-grid {

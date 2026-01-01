@@ -68,23 +68,38 @@ async function query(gql: string, variables: Record<string, unknown> = {}) {
 
 // Entity type color mapping
 const ENTITY_TYPE_COLORS: Record<string, string> = {
-	LLC: '#3b82f6',
-	Trust: '#8b5cf6',
-	Corporation: '#22c55e',
-	Partnership: '#f59e0b',
-	Individual: '#ef4444',
-	Other: '#71717a'
+	'Business Entity': '#3b82f6',
+	Municipality: '#06b6d4',
+	'Non-Profit': '#ec4899',
+	LLC: '#8b5cf6',
+	Trust: '#22c55e',
+	Corporation: '#f59e0b',
+	Partnership: '#ef4444',
+	Individual: '#a855f7',
+	Government: '#0ea5e9',
+	Church: '#71717a',
+	Other: '#64748b'
 };
 
-// Normalize entity type for display
+// Normalize entity type for display - use actual database values
 function normalizeEntityType(type: string | null): string {
 	if (!type) return 'Other';
 	const upper = type.toUpperCase();
+
+	// Match actual database values first
+	if (upper === 'BUSINESS ENTITY' || upper.includes('BUSINESS')) return 'Business Entity';
+	if (upper === 'MUNICIPAL' || upper.includes('MUNICIPAL') || upper.includes('CITY') || upper.includes('COUNTY') || upper.includes('TOWN')) return 'Municipality';
+	if (upper === 'NON-PROFIT' || upper.includes('NON-PROFIT') || upper.includes('NONPROFIT') || upper.includes('501') || upper.includes('FOUNDATION') || upper.includes('ASSOCIATION')) return 'Non-Profit';
+
+	// Legacy patterns
 	if (upper.includes('LLC')) return 'LLC';
 	if (upper.includes('TRUST')) return 'Trust';
 	if (upper.includes('CORP') || upper.includes('INC')) return 'Corporation';
 	if (upper.includes('LP') || upper.includes('PARTNER')) return 'Partnership';
-	if (upper === 'INDIVIDUAL') return 'Individual';
+	if (upper.includes('INDIVIDUAL') || upper.includes('PERSON')) return 'Individual';
+	if (upper.includes('GOVERNMENT') || upper.includes('STATE') || upper.includes('FEDERAL') || upper.includes('PUBLIC')) return 'Government';
+	if (upper.includes('CHURCH') || upper.includes('RELIGIOUS') || upper.includes('MINISTRY')) return 'Church';
+
 	return 'Other';
 }
 
@@ -159,11 +174,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}
 		`;
 
-		// Contact coverage query
+		// Contact coverage query - count entities that have at least one contact
 		const contactsQuery = `
 			query ContactCoverage {
 				total_entities: entities_aggregate { aggregate { count } }
 				total_contacts: entity_contacts_aggregate { aggregate { count } }
+				entities_with_contacts: entities_aggregate(where: {entity_contacts: {}}) { aggregate { count } }
 			}
 		`;
 
@@ -171,6 +187,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const carrierStatsQuery = `
 			query CarrierStats {
 				tower_providers {
+					tower_id
 					provider {
 						name
 					}
@@ -203,7 +220,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const totalTowers = stats.towers_aggregate?.aggregate?.count || 0;
 		const totalEntities = stats.entities_aggregate?.aggregate?.count || 0;
 		const endcCount = stats.endc?.aggregate?.count || 0;
-		const multiTenantCount = stats.multiTenant?.aggregate?.count || 0;
 
 		// Process tower type data
 		const typeData = [
@@ -287,18 +303,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.sort((a, b) => b.count - a.count);
 
 		// Contact stats
+		const totalContactEntities = contactsData.total_entities?.aggregate?.count || 0;
+		const entitiesWithContacts = contactsData.entities_with_contacts?.aggregate?.count || 0;
+		const contactCoveragePercent = totalContactEntities > 0
+			? Math.round((entitiesWithContacts / totalContactEntities) * 100)
+			: 0;
+
 		const contactStats: ContactStats = {
 			totalContacts: contactsData.total_contacts?.aggregate?.count || 0,
-			totalEntities: contactsData.total_entities?.aggregate?.count || 0,
-			entitiesWithContacts: 0,
+			totalEntities: totalContactEntities,
+			entitiesWithContacts,
 			verifiedEmails: 0,
 			activePhones: 0,
-			coveragePercent: 0
+			coveragePercent: contactCoveragePercent
 		};
 
-		// Process carrier stats with EN-DC
+		// Process carrier stats with EN-DC and calculate multi-tenant
 		const carrierMap = new Map<string, { total: number; endc: number }>();
-		carrierStatsData.tower_providers?.forEach((tp: { provider: { name: string }; tower: { endc_available: boolean } }) => {
+		const towerProviderCount = new Map<number, number>();
+
+		carrierStatsData.tower_providers?.forEach((tp: { tower_id?: number; provider: { name: string }; tower: { endc_available: boolean } }) => {
 			const name = tp.provider?.name;
 			if (name) {
 				const existing = carrierMap.get(name) || { total: 0, endc: 0 };
@@ -306,7 +330,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 				if (tp.tower?.endc_available) existing.endc++;
 				carrierMap.set(name, existing);
 			}
+			// Count providers per tower for multi-tenant calculation
+			if (tp.tower_id) {
+				towerProviderCount.set(tp.tower_id, (towerProviderCount.get(tp.tower_id) || 0) + 1);
+			}
 		});
+
+		// Calculate multi-tenant: towers with more than one provider
+		const towersWithProviders = towerProviderCount.size;
+		const multiTenantTowers = Array.from(towerProviderCount.values()).filter(count => count > 1).length;
 
 		const carrierLimit = getCarrierLimit(accessTier);
 		const allCarrierData: CarrierStats[] = Array.from(carrierMap.entries())
@@ -322,19 +354,32 @@ export const load: PageServerLoad = async ({ locals }) => {
 		const carrierData = allCarrierData.slice(0, carrierLimit);
 		const carrierDataTotal = allCarrierData.length;
 
-		// Simple carrier data for BarChart
-		const simpleCarrierData = carrierData.map(c => ({
+		// Simple carrier data for charts - filter out Ghost Lead, show top 4 + Other
+		const filteredCarriers = allCarrierData.filter(c => c.name !== 'Ghost Lead');
+		const topCarriers = filteredCarriers.slice(0, 4);
+		const otherCarriers = filteredCarriers.slice(4);
+		const otherCount = otherCarriers.reduce((sum, c) => sum + c.towerCount, 0);
+
+		const simpleCarrierData = topCarriers.map(c => ({
 			name: c.name,
 			count: c.towerCount,
 			color: c.color
 		}));
+
+		if (otherCount > 0) {
+			simpleCarrierData.push({
+				name: 'Other',
+				count: otherCount,
+				color: '#64748b'
+			});
+		}
 
 		// Process state data
 		const stateList = geo.states?.map((s: { state: string }) => s.state).filter(Boolean) || [];
 
 		// Calculate KPI values
 		const endcRate = totalTowers > 0 ? Math.round((endcCount / totalTowers) * 100) : 0;
-		const multiTenantRate = totalTowers > 0 ? Math.round((multiTenantCount / totalTowers) * 100) : 0;
+		const multiTenantRate = towersWithProviders > 0 ? Math.round((multiTenantTowers / towersWithProviders) * 100) : 0;
 
 		return {
 			// Access tier
@@ -346,9 +391,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			totalEntities,
 			endcCapable: endcCount,
 			endcRate,
-			multiTenantCount,
+			multiTenantCount: multiTenantTowers,
 			multiTenantRate,
-			contactCoveragePercent: contactStats.coveragePercent,
+			contactCoveragePercent,
 
 			// Entity intelligence
 			entityTypeData,

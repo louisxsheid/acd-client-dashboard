@@ -10,20 +10,20 @@
 	const total = $derived(data.reduce((sum, d) => sum + d.count, 0));
 </script>
 
-<div class="entity-type-chart">
+<div class="tower-type-chart">
 	<div class="chart-header">
-		<h3>Ownership Distribution</h3>
-		<span class="total-badge">{total.toLocaleString()} entities</span>
+		<h3>Tower Types</h3>
+		<span class="total-badge">{total.toLocaleString()} towers</span>
 	</div>
 	{#if data.length > 0}
 		<DoughnutChart {data} title="" />
 	{:else}
-		<div class="empty-state">No entity data available</div>
+		<div class="empty-state">No tower type data available</div>
 	{/if}
 </div>
 
 <style>
-	.entity-type-chart {
+	.tower-type-chart {
 		background: #253448;
 		border-radius: 12px;
 		padding: 1rem;
@@ -60,7 +60,7 @@
 		font-size: 0.875rem;
 	}
 
-	:global(.entity-type-chart .doughnut-chart) {
+	:global(.tower-type-chart .doughnut-chart) {
 		background: transparent;
 		padding: 0;
 	}

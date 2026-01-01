@@ -52,6 +52,8 @@
 	let currentZoom = $state(4);
 	let mapReady = $state(false);
 	let hoveredTowerId = $state<number | null>(null);
+	let hoveredTower = $state<TowerSearchDocument | null>(null);
+	let tooltipPos = $state<{ x: number; y: number } | null>(null);
 
 	// Hover offset threshold - only offset at zoom levels >= this
 	const HOVER_OFFSET_MIN_ZOOM = 14;
@@ -152,13 +154,19 @@
 					mask: true
 				}),
 				getPosition: (d) => [d.longitude, d.latitude],
-				getSize: 40,
+				getSize: (d) => (d.id === hoveredTowerId ? 48 : 40),
 				sizeUnits: 'pixels',
 				sizeMinPixels: 28,
-				sizeMaxPixels: 56,
+				sizeMaxPixels: 60,
 				getColor: (d) => [...getCarrierColor(d.carrier, d.entity_name), 255],
 				billboard: true,
-				alphaCutoff: 0.01
+				alphaCutoff: 0.01,
+				transitions: {
+					getSize: { duration: 150, easing: (t: number) => t }
+				},
+				updateTriggers: {
+					getSize: hoveredTowerId
+				}
 			}),
 			// Top part - white circle and stem (hidden when close zoom)
 			new IconLayer<TowerSearchDocument>({
@@ -173,12 +181,18 @@
 					mask: false
 				}),
 				getPosition: (d) => [d.longitude, d.latitude],
-				getSize: 40,
+				getSize: (d) => (d.id === hoveredTowerId ? 48 : 40),
 				sizeUnits: 'pixels',
 				sizeMinPixels: 28,
-				sizeMaxPixels: 56,
+				sizeMaxPixels: 60,
 				billboard: true,
-				alphaCutoff: 0.01
+				alphaCutoff: 0.01,
+				transitions: {
+					getSize: { duration: 150, easing: (t: number) => t }
+				},
+				updateTriggers: {
+					getSize: hoveredTowerId
+				}
 			}),
 			// White circle markers - shown when zoomed in close
 			new ScatterplotLayer<TowerSearchDocument>({
@@ -325,48 +339,16 @@
 				},
 				controller: false,
 				layers: [],
-				onHover: (info: { object?: TowerSearchDocument }) => {
+				onHover: (info: { object?: TowerSearchDocument; x?: number; y?: number }) => {
 					if (info.object && 'id' in info.object) {
 						hoveredTowerId = info.object.id;
+						hoveredTower = info.object;
+						tooltipPos = { x: info.x ?? 0, y: info.y ?? 0 };
 					} else {
 						hoveredTowerId = null;
+						hoveredTower = null;
+						tooltipPos = null;
 					}
-				},
-				getTooltip: ({ object, x, y }: { object?: TowerSearchDocument; x?: number; y?: number }) => {
-					if (!object) return null;
-
-					// Get container dimensions to avoid tooltip going off-screen
-					const containerWidth = container?.clientWidth || 800;
-					const containerHeight = container?.clientHeight || 600;
-					const tooltipWidth = 250;
-					const tooltipHeight = 100;
-
-					// Determine if tooltip should flip based on position
-					const flipX = x && x > containerWidth - tooltipWidth - 50;
-					const flipY = y && y < tooltipHeight + 50;
-
-					return {
-						html: `
-							<div style="padding: 8px; max-width: 250px;">
-								<div style="font-weight: 600; margin-bottom: 4px;">
-									${object.address || 'No address'}
-								</div>
-								<div style="font-size: 12px; color: #a1a1aa;">
-									${[object.city, object.state].filter(Boolean).join(', ')}
-								</div>
-								${object.entity_name ? `<div style="font-size: 12px; color: #71717a; margin-top: 4px;">${object.entity_name}</div>` : ''}
-								${object.carrier ? `<div style="font-size: 11px; color: #3b82f6; margin-top: 4px;">${object.carrier}</div>` : ''}
-							</div>
-						`,
-						style: {
-							backgroundColor: '#1e1e2e',
-							color: '#f4f4f5',
-							border: '1px solid #3b3b50',
-							borderRadius: '6px',
-							boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-							transform: `translate(${flipX ? '-110%' : '10px'}, ${flipY ? '10px' : '-100%'})`
-						}
-					};
 				}
 			});
 
@@ -471,6 +453,30 @@
 	<div class="map-stats">
 		<span>{displayCount.toLocaleString()} towers</span>
 	</div>
+
+	{#if hoveredTower && tooltipPos}
+		{@const w = container?.clientWidth || 800}
+		{@const h = container?.clientHeight || 600}
+		{@const tooltipW = 250}
+		{@const tooltipH = 100}
+		{@const nearRight = tooltipPos.x > w - tooltipW - 50}
+		{@const nearBottom = tooltipPos.y > h - tooltipH - 30}
+		{@const left = nearRight ? tooltipPos.x - tooltipW - 30 : tooltipPos.x + 30}
+		{@const top = nearBottom ? tooltipPos.y - tooltipH - 20 : tooltipPos.y + 20}
+		<div
+			class="custom-tooltip"
+			style="left: {Math.max(10, Math.min(left, w - tooltipW - 10))}px; top: {Math.max(10, Math.min(top, h - tooltipH - 10))}px;"
+		>
+			<div class="tooltip-address">{hoveredTower.address || 'No address'}</div>
+			<div class="tooltip-location">{[hoveredTower.city, hoveredTower.state].filter(Boolean).join(', ')}</div>
+			{#if hoveredTower.entity_name}
+				<div class="tooltip-entity">{hoveredTower.entity_name}</div>
+			{/if}
+			{#if hoveredTower.carrier}
+				<div class="tooltip-carrier">{hoveredTower.carrier}</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -550,5 +556,41 @@
 		font-size: 0.75rem;
 		color: #e2e8f0;
 		z-index: 5;
+	}
+
+	.custom-tooltip {
+		position: absolute;
+		background-color: #1e1e2e;
+		color: #f4f4f5;
+		border: 1px solid #3b3b50;
+		border-radius: 6px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		padding: 10px;
+		z-index: 1000;
+		pointer-events: none;
+		min-width: 180px;
+		max-width: 250px;
+	}
+
+	.tooltip-address {
+		font-weight: 600;
+		margin-bottom: 4px;
+	}
+
+	.tooltip-location {
+		font-size: 12px;
+		color: #a1a1aa;
+	}
+
+	.tooltip-entity {
+		font-size: 12px;
+		color: #71717a;
+		margin-top: 4px;
+	}
+
+	.tooltip-carrier {
+		font-size: 11px;
+		color: #3b82f6;
+		margin-top: 4px;
 	}
 </style>
