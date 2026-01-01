@@ -91,11 +91,32 @@
 	</section>
 
 	<section class="two-column-grid fade-in-up delay-2">
-		<ENDCGauge
-			rate={data.endcRate}
-			totalTowers={data.totalTowers}
-			endcTowers={data.endcCapable}
-		/>
+		{#if data.accessTier === 'SAMPLE'}
+			<div class="locked-gauge">
+				<div class="locked-header">
+					<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="url(#gaugeGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<defs>
+							<linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+								<stop offset="0%" stop-color="#B0BEC5" />
+								<stop offset="50%" stop-color="#7CCFEE" />
+								<stop offset="100%" stop-color="#5EB1F7" />
+							</linearGradient>
+						</defs>
+						<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+						<path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+					</svg>
+					<span class="locked-title">5G/EN-DC Adoption</span>
+				</div>
+				<p class="locked-desc">Unlock to see detailed 5G network adoption metrics</p>
+				<button class="unlock-btn" type="button" onclick={handleUnlock}>Click to Unlock</button>
+			</div>
+		{:else}
+			<ENDCGauge
+				rate={data.endcRate}
+				totalTowers={data.totalTowers}
+				endcTowers={data.endcCapable}
+			/>
+		{/if}
 		<CarrierComparisonTable
 			carriers={data.carrierData}
 			totalCarriers={data.carrierDataTotal}
@@ -226,6 +247,59 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
 		gap: 1.5rem;
+	}
+
+	.locked-gauge {
+		background: linear-gradient(135deg, #253448 0%, #1a1a2e 100%);
+		border: 1px solid #3d4f63;
+		border-radius: 12px;
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		min-height: 280px;
+	}
+
+	.locked-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+
+	.locked-title {
+		font-size: 1rem;
+		font-weight: 600;
+		background: linear-gradient(90deg, #B0BEC5 0%, #7CCFEE 50%, #5EB1F7 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.locked-desc {
+		color: rgba(176, 190, 197, 0.6);
+		font-size: 0.875rem;
+		margin: 0 0 1.5rem 0;
+		max-width: 250px;
+	}
+
+	.unlock-btn {
+		background: linear-gradient(90deg, #5EB1F7, #3b82f6);
+		border: none;
+		border-radius: 8px;
+		padding: 0.75rem 1.5rem;
+		color: white;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.unlock-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(94, 177, 247, 0.3);
 	}
 
 	.summary-card {
