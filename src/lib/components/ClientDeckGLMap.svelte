@@ -57,16 +57,9 @@
 	const HOVER_OFFSET_MIN_ZOOM = 14;
 	const HOVER_OFFSET_PIXELS = 40; // How many pixels to offset the tooltip dot
 
-	// Icon mapping for deck.gl IconLayer
-	const ICON_MAPPING = {
-		antenna: {
-			url: '/icons/antenna.svg',
-			width: 48,
-			height: 64,
-			anchorY: 32,
-			mask: true // Enables color tinting via getFillColor
-		}
-	};
+	// Two-part pin icon URLs
+	const PIN_TOP_URL = '/icons/pin-top.svg';
+	const PIN_BOTTOM_URL = '/icons/pin-bottom.svg';
 
 	// Carrier colors - matching carriers.ts for consistency
 	const CARRIER_COLORS: Record<string, [number, number, number]> = {
@@ -146,72 +139,85 @@
 		}
 
 		const layers = [
-			// Glow/shadow layer behind icons for visibility on satellite imagery
-			new ScatterplotLayer<TowerSearchDocument>({
-				id: 'towers-glow',
-				data: towers,
+			// Bottom arc - colored by carrier (hidden when close zoom)
+			new IconLayer<TowerSearchDocument>({
+				id: 'pin-bottom',
+				data: isCloseZoom ? [] : towers,
 				pickable: false,
-				opacity: 0.5,
-				stroked: false,
+				getIcon: () => ({
+					url: PIN_BOTTOM_URL,
+					width: 128,
+					height: 128,
+					anchorY: 112,
+					mask: true
+				}),
+				getPosition: (d) => [d.longitude, d.latitude],
+				getSize: 40,
+				sizeUnits: 'pixels',
+				sizeMinPixels: 28,
+				sizeMaxPixels: 56,
+				getColor: (d) => [...getCarrierColor(d.carrier, d.entity_name), 255],
+				billboard: true,
+				alphaCutoff: 0.01
+			}),
+			// Top part - white circle and stem (hidden when close zoom)
+			new IconLayer<TowerSearchDocument>({
+				id: 'pin-top',
+				data: isCloseZoom ? [] : towers,
+				pickable: !isCloseZoom,
+				getIcon: () => ({
+					url: PIN_TOP_URL,
+					width: 128,
+					height: 128,
+					anchorY: 112,
+					mask: false
+				}),
+				getPosition: (d) => [d.longitude, d.latitude],
+				getSize: 40,
+				sizeUnits: 'pixels',
+				sizeMinPixels: 28,
+				sizeMaxPixels: 56,
+				billboard: true,
+				alphaCutoff: 0.01
+			}),
+			// White circle markers - shown when zoomed in close
+			new ScatterplotLayer<TowerSearchDocument>({
+				id: 'towers',
+				data: isCloseZoom ? towers : [],
+				pickable: isCloseZoom,
+				opacity: 1,
+				stroked: true,
 				filled: true,
-				radiusScale: 1,
-				radiusMinPixels: 16,
-				radiusMaxPixels: 32,
+				radiusMinPixels: 8,
+				radiusMaxPixels: 20,
+				lineWidthMinPixels: 2,
+				lineWidthMaxPixels: 4,
 				getPosition: (d) => {
-					if (d.id === activeTowerId && isCloseZoom) {
+					if (d.id === activeTowerId) {
 						const offset = getOffsetPosition(d);
 						if (offset) return offset;
 					}
 					return [d.longitude, d.latitude];
 				},
-				getRadius: (d) => (d.id === selectedTowerId ? 24 : 16),
+				getRadius: (d) => (d.id === selectedTowerId ? 14 : 10),
 				getFillColor: (d) => {
-					if (d.id === selectedTowerId) {
-						return [59, 130, 246, 180]; // Blue glow for selected
-					}
-					return [0, 0, 0, 150]; // Dark glow for contrast
+					if (d.id === selectedTowerId) return [255, 255, 255, 255];
+					return [...getCarrierColor(d.carrier, d.entity_name), 255];
 				},
+				getLineColor: (d) => {
+					if (d.id === selectedTowerId) return [59, 130, 246, 255];
+					return [255, 255, 255, 200];
+				},
+				getLineWidth: (d) => (d.id === selectedTowerId ? 3 : 2),
 				updateTriggers: {
 					getRadius: selectedTowerId,
 					getFillColor: selectedTowerId,
+					getLineColor: selectedTowerId,
+					getLineWidth: selectedTowerId,
 					getPosition: [activeTowerId, currentZoom]
 				}
 			}),
-			// Main tower icons using IconLayer
-			new IconLayer<TowerSearchDocument>({
-				id: 'towers',
-				data: towers,
-				pickable: true,
-				getIcon: () => 'antenna',
-				iconAtlas: '/icons/antenna.svg',
-				iconMapping: ICON_MAPPING,
-				getPosition: (d) => {
-					if (d.id === activeTowerId && isCloseZoom) {
-						const offset = getOffsetPosition(d);
-						if (offset) return offset;
-					}
-					return [d.longitude, d.latitude];
-				},
-				getSize: (d) => (d.id === selectedTowerId ? 40 : 32),
-				sizeScale: 1,
-				sizeUnits: 'pixels',
-				sizeMinPixels: 20,
-				sizeMaxPixels: 48,
-				getColor: (d) => {
-					if (d.id === selectedTowerId) {
-						return [255, 255, 255, 255]; // White for selected
-					}
-					return [...getCarrierColor(d.carrier, d.entity_name), 255];
-				},
-				billboard: true,
-				alphaCutoff: 0.05,
-				updateTriggers: {
-					getSize: selectedTowerId,
-					getColor: selectedTowerId,
-					getPosition: [activeTowerId, currentZoom]
-				}
-			}),
-			// Line from offset point back to actual tower location
+			// Line from offset point to actual tower location
 			new LineLayer({
 				id: 'hover-lines',
 				data: lineData,

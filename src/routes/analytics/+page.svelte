@@ -1,9 +1,17 @@
 <script lang="ts">
 	import StatCard from '$lib/components/StatCard.svelte';
-	import BarChart from '$lib/components/BarChart.svelte';
-	import DoughnutChart from '$lib/components/DoughnutChart.svelte';
+	import EntityTypeChart from '$lib/components/EntityTypeChart.svelte';
+	import ENDCGauge from '$lib/components/ENDCGauge.svelte';
+	import CarrierComparisonTable from '$lib/components/CarrierComparisonTable.svelte';
+	import ContactSalesModal from '$lib/components/ContactSalesModal.svelte';
 
 	let { data } = $props();
+
+	let showContactModal = $state(false);
+
+	function handleUnlock() {
+		showContactModal = true;
+	}
 </script>
 
 <svelte:head>
@@ -13,7 +21,10 @@
 <div class="analytics-page">
 	<header class="page-header">
 		<h1>Analytics</h1>
-		<p class="subtitle">Tower portfolio statistics and insights</p>
+		<p class="subtitle">Tower portfolio intelligence and insights</p>
+		{#if data.accessTier === 'SAMPLE'}
+			<span class="tier-badge">Sample Access</span>
+		{/if}
 	</header>
 
 	{#if data.error}
@@ -27,7 +38,7 @@
 		</div>
 	{/if}
 
-	<!-- Stats Cards -->
+	<!-- KPI Row -->
 	<section class="stats-grid fade-in-up">
 		<StatCard
 			title="Total Towers"
@@ -35,45 +46,63 @@
 			icon="📡"
 			color="#3b82f6"
 		/>
+		<StatCard
+			title="Total Entities"
+			value={data.totalEntities}
+			icon="🏢"
+			color="#8b5cf6"
+		/>
+		<StatCard
+			title="Contact Coverage"
+			value="{data.contactCoveragePercent}%"
+			icon="📧"
+			color="#22c55e"
+		/>
+		<StatCard
+			title="5G/EN-DC Rate"
+			value="{data.endcRate}%"
+			icon="📶"
+			color="#f59e0b"
+		/>
+		<StatCard
+			title="Multi-Tenant"
+			value="{data.multiTenantRate}%"
+			icon="🔗"
+			color="#ef4444"
+		/>
 	</section>
 
-	<!-- Distribution Charts -->
-	<section class="charts-grid fade-in-up delay-1">
-		{#if data.typeData && data.typeData.length > 0}
-			<BarChart title="Towers by Type" data={data.typeData} />
-		{/if}
+	<!-- Entity Intelligence Section -->
+	{#if data.entityTypeData && data.entityTypeData.length > 0}
+		<section class="section-header fade-in-up delay-1">
+			<h2>Entity Intelligence</h2>
+			<p class="section-desc">Owner type distribution</p>
+		</section>
 
-		{#if data.carrierData && data.carrierData.length > 0}
-			<BarChart title="Sites by Carrier" data={data.carrierData} />
-		{/if}
-
-		{#if data.accessStateData && data.accessStateData.length > 0}
-			<BarChart title="Access Level Distribution" data={data.accessStateData} />
-		{/if}
-	</section>
-
-	<!-- Entity/Tenant Distribution -->
-	{#if data.tenantData && data.tenantData.length > 0}
-		<section class="full-width-section fade-in-up delay-2">
-			<div class="chart-card">
-				<h3>Portfolio Distribution</h3>
-				<div class="tenant-list">
-					{#each data.tenantData as tenant}
-						<div class="tenant-row">
-							<span class="tenant-name">{tenant.name}</span>
-							<div class="tenant-bar-container">
-								<div
-									class="tenant-bar"
-									style="width: {(tenant.count / data.totalSites) * 100}%"
-								></div>
-							</div>
-							<span class="tenant-count">{tenant.count}</span>
-						</div>
-					{/each}
-				</div>
-			</div>
+		<section class="fade-in-up delay-1">
+			<EntityTypeChart data={data.entityTypeData} />
 		</section>
 	{/if}
+
+	<!-- Network Quality Section -->
+	<section class="section-header fade-in-up delay-2">
+		<h2>Network Quality</h2>
+		<p class="section-desc">5G adoption and carrier infrastructure</p>
+	</section>
+
+	<section class="two-column-grid fade-in-up delay-2">
+		<ENDCGauge
+			rate={data.endcRate}
+			totalTowers={data.totalTowers}
+			endcTowers={data.endcCapable}
+		/>
+		<CarrierComparisonTable
+			carriers={data.carrierData}
+			totalCarriers={data.carrierDataTotal}
+			isLocked={data.accessTier === 'SAMPLE'}
+			onUnlock={handleUnlock}
+		/>
+	</section>
 
 	<!-- Geographic Summary -->
 	{#if data.states && data.states.length > 0}
@@ -89,38 +118,10 @@
 			</div>
 		</section>
 	{/if}
-
-	<!-- Carrier List -->
-	{#if data.uniqueCarriers && data.uniqueCarriers.length > 0}
-		<section class="summary-card fade-in-up delay-3">
-			<div class="summary-header">
-				<h2>Carriers in Portfolio</h2>
-				<p class="summary-desc">All carriers across tower sites</p>
-			</div>
-			<div class="carriers-grid">
-				{#each data.uniqueCarriers as carrier}
-					<div class="carrier-chip">{carrier}</div>
-				{/each}
-			</div>
-		</section>
-	{/if}
-
-	<!-- Quick Links -->
-	<section class="quick-links fade-in-up delay-4">
-		<div class="link-card">
-			<a href="/map">
-				<h3>Tower Map</h3>
-				<p>Explore your tower portfolio geographically</p>
-			</a>
-		</div>
-		<div class="link-card">
-			<a href="/">
-				<h3>Dashboard</h3>
-				<p>Return to main dashboard overview</p>
-			</a>
-		</div>
-	</section>
 </div>
+
+<!-- Contact Sales Modal -->
+<ContactSalesModal open={showContactModal} onClose={() => showContactModal = false} />
 
 <style>
 	.analytics-page {
@@ -135,19 +136,51 @@
 
 	.page-header {
 		margin-bottom: 0.5rem;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.75rem;
 	}
 
 	h1 {
 		font-size: 1.5rem;
 		font-weight: 600;
 		color: #f4f4f5;
-		margin: 0 0 0.5rem 0;
+		margin: 0;
 	}
 
 	.subtitle {
 		font-size: 0.875rem;
 		color: #71717a;
 		margin: 0;
+		flex: 1;
+	}
+
+	.tier-badge {
+		background: rgba(245, 158, 11, 0.15);
+		color: #f59e0b;
+		padding: 0.25rem 0.75rem;
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		font-weight: 500;
+	}
+
+	.section-header {
+		margin-top: 1rem;
+		margin-bottom: -0.5rem;
+	}
+
+	.section-header h2 {
+		margin: 0;
+		font-size: 1.125rem;
+		color: #f4f4f5;
+		font-weight: 600;
+	}
+
+	.section-desc {
+		margin: 0.25rem 0 0;
+		font-size: 0.8rem;
+		color: #71717a;
 	}
 
 	.error-banner {
@@ -171,7 +204,6 @@
 	.fade-in-up.delay-1 { animation-delay: 0.1s; }
 	.fade-in-up.delay-2 { animation-delay: 0.2s; }
 	.fade-in-up.delay-3 { animation-delay: 0.3s; }
-	.fade-in-up.delay-4 { animation-delay: 0.4s; }
 
 	@keyframes fadeInUp {
 		from {
@@ -186,82 +218,14 @@
 
 	.stats-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-		gap: 1.25rem;
-	}
-
-	.charts-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.full-width-section {
-		/* Full width */
-	}
-
-	.chart-card {
-		background: #253448;
-		border-radius: 12px;
-		padding: 1.5rem;
-	}
-
-	.chart-card h3 {
-		margin: 0 0 1.25rem;
-		font-size: 0.9rem;
-		color: #f4f4f5;
-		font-weight: 600;
-	}
-
-	.tenant-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.tenant-row {
-		display: flex;
-		align-items: center;
+		grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 		gap: 1rem;
 	}
 
-	.tenant-name {
-		width: 180px;
-		font-size: 0.875rem;
-		color: #a1a1aa;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.tenant-bar-container {
-		flex: 1;
-		height: 8px;
-		background: #2d3e52;
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.tenant-bar {
-		height: 100%;
-		background: linear-gradient(90deg, #5EB1F7, #1D2C43);
-		border-radius: 4px;
-		min-width: 4px;
-		animation: barGrow 0.6s ease-out forwards;
-	}
-
-	@keyframes barGrow {
-		from {
-			width: 0;
-		}
-	}
-
-	.tenant-count {
-		width: 50px;
-		text-align: right;
-		font-size: 0.875rem;
-		color: #f4f4f5;
-		font-variant-numeric: tabular-nums;
+	.two-column-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+		gap: 1.5rem;
 	}
 
 	.summary-card {
@@ -287,63 +251,19 @@
 		color: #71717a;
 	}
 
-	.states-grid, .carriers-grid {
+	.states-grid {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
 
-	.state-chip, .carrier-chip {
+	.state-chip {
 		background: #2d3e52;
 		color: rgba(255, 255, 255, 0.7);
 		padding: 0.375rem 0.75rem;
 		border-radius: 6px;
 		font-size: 0.8rem;
 		font-weight: 500;
-	}
-
-	.carrier-chip {
-		background: rgba(94, 177, 247, 0.15);
-		color: #5EB1F7;
-		border: 1px solid rgba(94, 177, 247, 0.3);
-	}
-
-	.quick-links {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-		gap: 1.5rem;
-		margin-top: 1rem;
-	}
-
-	.link-card {
-		background: #253448;
-		border-radius: 12px;
-		transition: all 0.2s ease;
-	}
-
-	.link-card:hover {
-		background: #2d3e52;
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-	}
-
-	.link-card a {
-		display: block;
-		padding: 1.5rem;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.link-card h3 {
-		margin: 0 0 0.5rem;
-		font-size: 1.125rem;
-		color: #f4f4f5;
-	}
-
-	.link-card p {
-		margin: 0;
-		color: #71717a;
-		font-size: 0.875rem;
 	}
 
 	@media (max-width: 768px) {
@@ -355,12 +275,8 @@
 			grid-template-columns: repeat(2, 1fr);
 		}
 
-		.charts-grid {
+		.two-column-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.tenant-name {
-			width: 120px;
 		}
 	}
 

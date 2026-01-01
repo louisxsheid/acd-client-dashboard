@@ -3,6 +3,39 @@ import { redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { getCarrierColorByName } from '$lib/carriers';
 
+type AccessTier = 'SAMPLE' | 'TRIAL' | 'LICENSED' | 'FULL';
+
+interface EntityTypeData {
+	name: string;
+	count: number;
+	color: string;
+}
+
+interface TopEntity {
+	id: string;
+	name: string;
+	entityType: string | null;
+	state: string | null;
+	towerCount: number;
+}
+
+interface ContactStats {
+	totalContacts: number;
+	totalEntities: number;
+	entitiesWithContacts: number;
+	verifiedEmails: number;
+	activePhones: number;
+	coveragePercent: number;
+}
+
+interface CarrierStats {
+	name: string;
+	color: string;
+	towerCount: number;
+	endcCount: number;
+	endcPercent: number;
+}
+
 function getEndpoint() {
 	const base = env.HASURA_GRAPHQL_ENDPOINT || 'http://localhost:8081';
 	return base.endsWith('/v1/graphql') ? base : `${base}/v1/graphql`;
@@ -16,7 +49,7 @@ function getAdminSecret() {
 	return secret;
 }
 
-async function query(gql: string, variables: Record<string, any> = {}) {
+async function query(gql: string, variables: Record<string, unknown> = {}) {
 	const response = await fetch(getEndpoint(), {
 		method: 'POST',
 		headers: {
@@ -33,6 +66,44 @@ async function query(gql: string, variables: Record<string, any> = {}) {
 	return result.data;
 }
 
+// Entity type color mapping
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+	LLC: '#3b82f6',
+	Trust: '#8b5cf6',
+	Corporation: '#22c55e',
+	Partnership: '#f59e0b',
+	Individual: '#ef4444',
+	Other: '#71717a'
+};
+
+// Normalize entity type for display
+function normalizeEntityType(type: string | null): string {
+	if (!type) return 'Other';
+	const upper = type.toUpperCase();
+	if (upper.includes('LLC')) return 'LLC';
+	if (upper.includes('TRUST')) return 'Trust';
+	if (upper.includes('CORP') || upper.includes('INC')) return 'Corporation';
+	if (upper.includes('LP') || upper.includes('PARTNER')) return 'Partnership';
+	if (upper === 'INDIVIDUAL') return 'Individual';
+	return 'Other';
+}
+
+// Limit data based on access tier
+function getEntityLimit(tier: AccessTier): number {
+	switch (tier) {
+		case 'SAMPLE': return 3;
+		case 'TRIAL': return 10;
+		default: return 100;
+	}
+}
+
+function getCarrierLimit(tier: AccessTier): number {
+	switch (tier) {
+		case 'SAMPLE': return 3;
+		default: return 100;
+	}
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	const session = await locals.auth?.();
 
@@ -41,7 +112,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	try {
-		// Stats query - basic counts
+		// Determine access tier - default to SAMPLE for demo purposes
+		const accessTier: AccessTier = 'SAMPLE';
+
+		// Main stats query
 		const statsQuery = `
 			query DashboardStats {
 				towers_aggregate { aggregate { count } }
@@ -59,6 +133,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 				# EN-DC capable
 				endc: towers_aggregate(where: {endc_available: {_eq: true}}) { aggregate { count } }
 
+				# Multi-tenant (provider_count > 1)
+				multiTenant: towers_aggregate(where: {provider_count: {_gt: 1}}) { aggregate { count } }
+
 				# Access states
 				sample: company_towers_aggregate(where: {access_state: {_eq: "SAMPLE"}}) { aggregate { count } }
 				trial: company_towers_aggregate(where: {access_state: {_eq: "TRIAL"}}) { aggregate { count } }
@@ -67,10 +144,40 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}
 		`;
 
-		// Carriers from tower_sites - get all distinct carriers with counts
-		const carriersQuery = `
+		// Get entity data via tower_sites (which has entity relationship)
+		const entityDataQuery = `
+			query EntityData {
+				tower_sites {
+					entity_id
+					entity {
+						id
+						name
+						entity_type
+						mail_state
+					}
+				}
+			}
+		`;
+
+		// Contact coverage query
+		const contactsQuery = `
+			query ContactCoverage {
+				total_entities: entities_aggregate { aggregate { count } }
+				total_contacts: entity_contacts_aggregate { aggregate { count } }
+			}
+		`;
+
+		// Carrier stats with EN-DC breakdown
+		const carrierStatsQuery = `
 			query CarrierStats {
-				tower_sites(distinct_on: carrier) { carrier }
+				tower_providers {
+					provider {
+						name
+					}
+					tower {
+						endc_available
+					}
+				}
 			}
 		`;
 
@@ -80,135 +187,224 @@ export const load: PageServerLoad = async ({ locals }) => {
 				states: tower_sites(distinct_on: state, where: {state: {_is_null: false}}) {
 					state
 				}
-				by_state: tower_sites_aggregate(where: {state: {_is_null: false}}) {
-					nodes {
-						state
-					}
-				}
-			}
-		`;
-
-		// Entities breakdown - get tower_sites with entity info
-		const entitiesQuery = `
-			query EntityStats {
-				entities {
-					id
-					name
-				}
-				tower_sites {
-					entity_id
-					entity {
-						name
-					}
-				}
 			}
 		`;
 
 		// Execute all queries in parallel
-		const [stats, carriers, geo, entitiesData] = await Promise.all([
+		const [stats, entityData, contactsData, carrierStatsData, geo] = await Promise.all([
 			query(statsQuery),
-			query(carriersQuery),
-			query(geoQuery),
-			query(entitiesQuery)
+			query(entityDataQuery),
+			query(contactsQuery),
+			query(carrierStatsQuery),
+			query(geoQuery)
 		]);
 
-		// Process tower type data - always show all types as placeholders
+		// Calculate total towers
+		const totalTowers = stats.towers_aggregate?.aggregate?.count || 0;
+		const totalEntities = stats.entities_aggregate?.aggregate?.count || 0;
+		const endcCount = stats.endc?.aggregate?.count || 0;
+		const multiTenantCount = stats.multiTenant?.aggregate?.count || 0;
+
+		// Process tower type data
 		const typeData = [
 			{ name: 'Macro', count: stats.macro?.aggregate?.count || 0, color: '#3b82f6' },
 			{ name: 'Small Cell', count: stats.micro?.aggregate?.count || 0, color: '#8b5cf6' },
 			{ name: 'Micro Cell', count: stats.pico?.aggregate?.count || 0, color: '#22c55e' },
-			{ name: 'Pico', count: 0, color: '#14b8a6' },
 			{ name: 'DAS', count: stats.das?.aggregate?.count || 0, color: '#f59e0b' },
 			{ name: 'COW', count: stats.cow?.aggregate?.count || 0, color: '#ef4444' }
-		];
+		].filter(d => d.count > 0);
 
-		// Process access state data (excluding SAMPLE)
+		// Process access state data
 		const accessStateData = [
 			{ name: 'Trial', count: stats.trial?.aggregate?.count || 0, color: '#f59e0b' },
 			{ name: 'Licensed', count: stats.licensed?.aggregate?.count || 0, color: '#3b82f6' },
 			{ name: 'Full', count: stats.full?.aggregate?.count || 0, color: '#22c55e' }
 		].filter(d => d.count > 0);
 
-		// Process carrier data from tower_providers for full carrier diversity
-		const carrierCounts = new Map<string, number>();
-		const allProvidersData = await query(`
-			query AllProviders {
-				tower_providers {
-					provider {
-						name
-					}
+		// Process entity data from tower_sites
+		const entityTypeCounts = new Map<string, number>();
+		const entityTowerCounts = new Map<string, { id: string; name: string; entityType: string; state: string | null; count: number }>();
+		const portfolioCounts = new Map<string, { name: string; count: number }>();
+
+		entityData.tower_sites?.forEach((site: { entity_id: string; entity: { id: string; name: string; entity_type: string | null; mail_state: string | null } | null }) => {
+			const entity = site.entity;
+			if (entity) {
+				// Count entity types
+				const normalized = normalizeEntityType(entity.entity_type);
+				entityTypeCounts.set(normalized, (entityTypeCounts.get(normalized) || 0) + 1);
+
+				// Count towers per entity
+				const existing = entityTowerCounts.get(entity.id);
+				if (existing) {
+					existing.count++;
+				} else {
+					entityTowerCounts.set(entity.id, {
+						id: entity.id,
+						name: entity.name,
+						entityType: normalized,
+						state: entity.mail_state,
+						count: 1
+					});
+				}
+
+				// Portfolio counts
+				const portfolioName = entity.name || 'Unknown';
+				const portfolioExisting = portfolioCounts.get(portfolioName);
+				if (portfolioExisting) {
+					portfolioExisting.count++;
+				} else {
+					portfolioCounts.set(portfolioName, { name: portfolioName, count: 1 });
 				}
 			}
-		`);
-		allProvidersData.tower_providers?.forEach((tp: { provider: { name: string } }) => {
+		});
+
+		// Create entity type chart data
+		const entityTypeData: EntityTypeData[] = Array.from(entityTypeCounts.entries())
+			.map(([name, count]) => ({
+				name,
+				count,
+				color: ENTITY_TYPE_COLORS[name] || '#71717a'
+			}))
+			.sort((a, b) => b.count - a.count);
+
+		// Create top entities list
+		const entityLimit = getEntityLimit(accessTier);
+		const allTopEntities: TopEntity[] = Array.from(entityTowerCounts.values())
+			.map(e => ({
+				id: e.id,
+				name: e.name,
+				entityType: e.entityType,
+				state: e.state,
+				towerCount: e.count
+			}))
+			.sort((a, b) => b.towerCount - a.towerCount);
+
+		const topEntities = allTopEntities.slice(0, entityLimit);
+		const topEntitiesTotal = allTopEntities.length;
+
+		// Portfolio distribution
+		const portfolioData = Array.from(portfolioCounts.values())
+			.sort((a, b) => b.count - a.count);
+
+		// Contact stats
+		const contactStats: ContactStats = {
+			totalContacts: contactsData.total_contacts?.aggregate?.count || 0,
+			totalEntities: contactsData.total_entities?.aggregate?.count || 0,
+			entitiesWithContacts: 0,
+			verifiedEmails: 0,
+			activePhones: 0,
+			coveragePercent: 0
+		};
+
+		// Process carrier stats with EN-DC
+		const carrierMap = new Map<string, { total: number; endc: number }>();
+		carrierStatsData.tower_providers?.forEach((tp: { provider: { name: string }; tower: { endc_available: boolean } }) => {
 			const name = tp.provider?.name;
 			if (name) {
-				carrierCounts.set(name, (carrierCounts.get(name) || 0) + 1);
+				const existing = carrierMap.get(name) || { total: 0, endc: 0 };
+				existing.total++;
+				if (tp.tower?.endc_available) existing.endc++;
+				carrierMap.set(name, existing);
 			}
 		});
-		const carrierData = Array.from(carrierCounts.entries())
-			.map(([name, count]) => ({ name, count }))
-			.filter(d => d.count > 0)
-			.sort((a, b) => b.count - a.count)
-			.map(d => ({ ...d, color: getCarrierColorByName(d.name) || '#6b7280' }));
 
-		// Process entity data for tenant distribution by counting tower_sites per entity
-		const entityCounts = new Map<string, { name: string; count: number }>();
-		entitiesData.tower_sites?.forEach((site: any) => {
-			const entityName = site.entity?.name || 'Unknown';
-			const existing = entityCounts.get(entityName);
-			if (existing) {
-				existing.count++;
-			} else {
-				entityCounts.set(entityName, { name: entityName, count: 1 });
-			}
-		});
-		const tenantData = Array.from(entityCounts.values())
-			.filter((e: any) => e.count > 0)
-			.sort((a: any, b: any) => b.count - a.count);
+		const carrierLimit = getCarrierLimit(accessTier);
+		const allCarrierData: CarrierStats[] = Array.from(carrierMap.entries())
+			.map(([name, data]) => ({
+				name,
+				color: getCarrierColorByName(name) || '#6b7280',
+				towerCount: data.total,
+				endcCount: data.endc,
+				endcPercent: data.total > 0 ? Math.round((data.endc / data.total) * 100) : 0
+			}))
+			.sort((a, b) => b.towerCount - a.towerCount);
+
+		const carrierData = allCarrierData.slice(0, carrierLimit);
+		const carrierDataTotal = allCarrierData.length;
+
+		// Simple carrier data for BarChart
+		const simpleCarrierData = carrierData.map(c => ({
+			name: c.name,
+			count: c.towerCount,
+			color: c.color
+		}));
 
 		// Process state data
-		const stateList = geo.states?.map((s: any) => s.state).filter(Boolean) || [];
+		const stateList = geo.states?.map((s: { state: string }) => s.state).filter(Boolean) || [];
+
+		// Calculate KPI values
+		const endcRate = totalTowers > 0 ? Math.round((endcCount / totalTowers) * 100) : 0;
+		const multiTenantRate = totalTowers > 0 ? Math.round((multiTenantCount / totalTowers) * 100) : 0;
 
 		return {
-			// Basic stats
-			totalTowers: stats.towers_aggregate?.aggregate?.count || 0,
-			totalSites: stats.tower_sites_aggregate?.aggregate?.count || 0,
-			totalEntities: stats.entities_aggregate?.aggregate?.count || 0,
-			endcCapable: stats.endc?.aggregate?.count || 0,
+			// Access tier
+			accessTier,
 
-			// Chart data
+			// KPI stats
+			totalTowers,
+			totalSites: stats.tower_sites_aggregate?.aggregate?.count || 0,
+			totalEntities,
+			endcCapable: endcCount,
+			endcRate,
+			multiTenantCount,
+			multiTenantRate,
+			contactCoveragePercent: contactStats.coveragePercent,
+
+			// Entity intelligence
+			entityTypeData,
+			topEntities,
+			topEntitiesTotal,
+			contactStats: accessTier !== 'SAMPLE' ? contactStats : null,
+
+			// Network quality
+			carrierData,
+			carrierDataTotal,
+			simpleCarrierData,
+
+			// Existing chart data
 			typeData,
 			accessStateData,
-			carrierData,
-			tenantData,
+			portfolioData,
 
 			// Lists
-			uniqueCarriers: carriers.tower_sites?.map((c: any) => c.carrier).filter(Boolean) || [],
+			uniqueCarriers: carrierData.map(c => c.name),
 			states: stateList,
 
-			// For backwards compatibility with existing components
+			// For backwards compatibility
+			tenantData: portfolioData,
 			stats: {
-				towers: stats.towers_aggregate?.aggregate?.count || 0,
+				towers: totalTowers,
 				sites: stats.tower_sites_aggregate?.aggregate?.count || 0,
-				entities: stats.entities_aggregate?.aggregate?.count || 0,
-				endc: stats.endc?.aggregate?.count || 0
+				entities: totalEntities,
+				endc: endcCount
 			}
 		};
 	} catch (err) {
 		console.error('Analytics fetch error:', err);
 		return {
 			error: err instanceof Error ? err.message : 'Failed to fetch analytics data',
+			accessTier: 'SAMPLE' as AccessTier,
 			totalTowers: 0,
 			totalSites: 0,
 			totalEntities: 0,
 			endcCapable: 0,
+			endcRate: 0,
+			multiTenantCount: 0,
+			multiTenantRate: 0,
+			contactCoveragePercent: 0,
+			entityTypeData: [],
+			topEntities: [],
+			topEntitiesTotal: 0,
+			contactStats: null,
+			carrierData: [],
+			carrierDataTotal: 0,
+			simpleCarrierData: [],
 			typeData: [],
 			accessStateData: [],
-			carrierData: [],
-			tenantData: [],
+			portfolioData: [],
 			uniqueCarriers: [],
 			states: [],
+			tenantData: [],
 			stats: null
 		};
 	}
