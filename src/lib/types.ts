@@ -107,6 +107,20 @@ export interface TowerSite {
 	source?: string;
 	source_updated_at?: string;
 	entity?: Entity;
+	// Zoning fields
+	use_code?: string;
+	zoning?: string;
+	zoning_description?: string;
+	zoning_type?: string;
+	zoning_subtype?: string;
+	zoning_code_link?: string;
+	telecom_ordinance_link?: string;
+	zoning_id?: string;
+	// Property valuation fields
+	improvement_value?: number;
+	land_value?: number;
+	parcel_value?: number;
+	year_built?: number;
 }
 
 export interface Tower {

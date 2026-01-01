@@ -661,15 +661,29 @@
 												</div>
 											{/if}
 										</div>
-										{#if site?.zoning_code_link}
-											<a href={site.zoning_code_link} target="_blank" rel="noopener noreferrer" class="map-link">
-												<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-													<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-													<polyline points="15 3 21 3 21 9"/>
-													<line x1="10" x2="21" y1="14" y2="3"/>
-												</svg>
-												View Zoning Code
-											</a>
+										{#if site?.telecom_ordinance_link || site?.zoning_code_link}
+											<div class="zoning-links">
+												{#if site?.telecom_ordinance_link}
+													<a href={site.telecom_ordinance_link} target="_blank" rel="noopener noreferrer" class="map-link primary">
+														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+															<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+															<polyline points="15 3 21 3 21 9"/>
+															<line x1="10" x2="21" y1="14" y2="3"/>
+														</svg>
+														View Wireless Ordinance
+													</a>
+												{/if}
+												{#if site?.zoning_code_link}
+													<a href={site.zoning_code_link} target="_blank" rel="noopener noreferrer" class="map-link secondary">
+														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+															<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+															<polyline points="15 3 21 3 21 9"/>
+															<line x1="10" x2="21" y1="14" y2="3"/>
+														</svg>
+														View Zoning Code
+													</a>
+												{/if}
+											</div>
 										{/if}
 									</div>
 								{:else}
@@ -1374,6 +1388,41 @@
 
 	.map-link svg {
 		flex-shrink: 0;
+	}
+
+	.zoning-links {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-top: 0.75rem;
+	}
+
+	.zoning-links .map-link {
+		margin-top: 0;
+	}
+
+	.map-link.primary {
+		background-color: rgba(34, 197, 94, 0.1);
+		border-color: rgba(34, 197, 94, 0.3);
+		color: #22c55e;
+	}
+
+	.map-link.primary:hover {
+		background-color: rgba(34, 197, 94, 0.2);
+		border-color: #22c55e;
+	}
+
+	.map-link.secondary {
+		background-color: rgba(94, 177, 247, 0.08);
+		border-color: rgba(94, 177, 247, 0.2);
+		color: rgba(94, 177, 247, 0.8);
+		font-size: 0.625rem;
+	}
+
+	.map-link.secondary:hover {
+		background-color: rgba(94, 177, 247, 0.15);
+		border-color: rgba(94, 177, 247, 0.5);
+		color: #5EB1F7;
 	}
 
 	.entity-type-badge {

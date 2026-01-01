@@ -1885,6 +1885,7 @@ export const GET_TOWER_DETAILS = gql`
           zoning_type
           zoning_subtype
           zoning_code_link
+          telecom_ordinance_link
           year_built
           improvement_value
           land_value
