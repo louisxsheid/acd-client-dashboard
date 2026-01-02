@@ -149,13 +149,14 @@
   .chart-wrapper {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
   }
 
   .chart-container {
     position: relative;
-    width: 160px;
-    height: 160px;
+    width: 140px;
+    height: 140px;
     flex-shrink: 0;
   }
 
@@ -187,34 +188,41 @@
   .chart-legend {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
 
   .legend-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .legend-name {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #a1a1aa;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .legend-value {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #f4f4f5;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
 
   @media (max-width: 480px) {

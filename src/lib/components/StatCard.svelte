@@ -21,12 +21,13 @@
   .stat-card {
     background: #253448;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     border-left: 4px solid var(--accent-color);
     transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
   }
 
   .stat-card:hover {
@@ -35,23 +36,49 @@
   }
 
   .stat-icon {
-    font-size: 2rem;
+    font-size: 1.5rem;
     opacity: 0.9;
+    flex-shrink: 0;
+  }
+
+  .stat-content {
+    min-width: 0;
+    overflow: hidden;
   }
 
   .stat-content h3 {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: 0.7rem;
     color: #a1a1aa;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .stat-value {
-    margin: 0.25rem 0 0;
-    font-size: 1.75rem;
+    margin: 0.125rem 0 0;
+    font-size: 1.5rem;
     font-weight: 700;
     color: #f4f4f5;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .stat-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .stat-content h3 {
+      font-size: 0.65rem;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+    }
   }
 </style>

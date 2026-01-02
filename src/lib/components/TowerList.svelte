@@ -37,7 +37,7 @@
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let showFilters = $state(false);
 	let carrierFilter = $state<string>('');
-	let entityFilter = $state<string>('');
+	let ownerTypeFilter = $state<string>('');
 	let listContentRef: HTMLDivElement;
 	let showContactModal = $state(false);
 
@@ -103,12 +103,12 @@
 		return Array.from(carriers).sort();
 	});
 
-	const uniqueEntities = $derived(() => {
-		const entities = new Set<string>();
+	const uniqueOwnerTypes = $derived(() => {
+		const types = new Set<string>();
 		towers.forEach((t) => {
-			if (t.entity_name) entities.add(t.entity_name);
+			if (t.entity_type) types.add(t.entity_type);
 		});
-		return Array.from(entities).sort();
+		return Array.from(types).sort();
 	});
 
 	// Check if tower has a specific carrier
@@ -126,14 +126,14 @@
 			if (carrierFilter) {
 				if (!towerHasCarrier(tower, carrierFilter)) return false;
 			}
-			if (entityFilter) {
-				if (tower.entity_name !== entityFilter) return false;
+			if (ownerTypeFilter) {
+				if (tower.entity_type !== ownerTypeFilter) return false;
 			}
 			return true;
 		});
 	});
 
-	const activeFilterCount = $derived((carrierFilter ? 1 : 0) + (entityFilter ? 1 : 0));
+	const activeFilterCount = $derived((carrierFilter ? 1 : 0) + (ownerTypeFilter ? 1 : 0));
 
 	// Notify parent when filters change so map can update
 	$effect(() => {
@@ -143,15 +143,15 @@
 
 	function clearFilters() {
 		carrierFilter = '';
-		entityFilter = '';
+		ownerTypeFilter = '';
 	}
 
 	function handleCarrierChange(e: Event) {
 		carrierFilter = (e.target as HTMLSelectElement).value;
 	}
 
-	function handleEntityChange(e: Event) {
-		entityFilter = (e.target as HTMLSelectElement).value;
+	function handleOwnerTypeChange(e: Event) {
+		ownerTypeFilter = (e.target as HTMLSelectElement).value;
 	}
 
 	// Debounced search
@@ -365,12 +365,12 @@
 					</div>
 				</div>
 				<div class="filter-group">
-					<span class="filter-label">Entity</span>
+					<span class="filter-label">Owner Type</span>
 					<div class="select-wrapper">
-						<select value={entityFilter} onchange={handleEntityChange} class="filter-select">
+						<select value={ownerTypeFilter} onchange={handleOwnerTypeChange} class="filter-select">
 							<option value="">All</option>
-							{#each uniqueEntities() as entity}
-								<option value={entity}>{entity}</option>
+							{#each uniqueOwnerTypes() as ownerType}
+								<option value={ownerType}>{ownerType}</option>
 							{/each}
 						</select>
 						<svg class="select-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -43,6 +43,7 @@ const SEARCH_COMPANY_TOWERS = gql`
 					carrier
 					entity {
 						name
+						entity_type
 					}
 				}
 			}
@@ -96,6 +97,7 @@ const GET_ALL_COMPANY_TOWERS = gql`
 					carrier
 					entity {
 						name
+						entity_type
 					}
 				}
 			}
@@ -121,6 +123,7 @@ interface TowerHit {
 	zip_code: string | null;
 	carrier: string | null;
 	entity_name: string | null;
+	entity_type: string | null;
 	provider_names: string[];
 	provider_count: number;
 }
@@ -144,6 +147,7 @@ function transformTowerHits(companyTowers: any[], companyId: string): TowerHit[]
 			zip_code: ct.tower.tower_site?.zip_code || null,
 			carrier: ct.tower.tower_site?.carrier || null,
 			entity_name: ct.tower.tower_site?.entity?.name || null,
+			entity_type: ct.tower.tower_site?.entity?.entity_type || null,
 			provider_names: providerNames,
 			provider_count: providerNames.length
 		};

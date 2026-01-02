@@ -27,8 +27,7 @@
 		background: #253448;
 		border-radius: 12px;
 		padding: 1rem;
-		flex: 1;
-		min-width: 280px;
+		overflow: hidden;
 	}
 
 	.chart-header {
