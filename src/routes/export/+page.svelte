@@ -228,11 +228,32 @@
 		</div>
 	</section>
 
-	<!-- Export History Placeholder -->
+	<!-- Export History -->
 	<section class="history-section fade-in-up delay-1">
 		<div class="history-card">
-			<h3>Export History</h3>
-			<p class="coming-soon">Coming soon - Track your previous exports</p>
+			<div class="history-header">
+				<h3>Export History</h3>
+				<span class="history-count">0 exports</span>
+			</div>
+			<div class="history-table">
+				<div class="history-table-header">
+					<span class="col-date">Date</span>
+					<span class="col-format">Format</span>
+					<span class="col-sections">Sections</span>
+					<span class="col-records">Records</span>
+					<span class="col-action"></span>
+				</div>
+				<div class="history-empty">
+					<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+						<polyline points="14 2 14 8 20 8"/>
+						<path d="M12 18v-6"/>
+						<path d="M9 15l3 3 3-3"/>
+					</svg>
+					<p>No exports yet</p>
+					<span>Your export history will appear here</span>
+				</div>
+			</div>
 		</div>
 	</section>
 </div>
@@ -589,7 +610,15 @@
 	.history-card {
 		background: #253448;
 		border-radius: 12px;
-		padding: 1.5rem;
+		overflow: hidden;
+	}
+
+	.history-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 1.5rem;
+		border-bottom: 1px solid #3d4f63;
 	}
 
 	.history-card h3 {
@@ -599,11 +628,60 @@
 		color: #f4f4f5;
 	}
 
-	.coming-soon {
-		margin: 0.75rem 0 0;
-		font-size: 0.875rem;
+	.history-count {
+		font-size: 0.75rem;
 		color: #71717a;
-		font-style: italic;
+		background: #1d2c43;
+		padding: 0.25rem 0.625rem;
+		border-radius: 1rem;
+	}
+
+	.history-table {
+		width: 100%;
+	}
+
+	.history-table-header {
+		display: grid;
+		grid-template-columns: 1.5fr 0.75fr 1.5fr 0.75fr 0.5fr;
+		gap: 1rem;
+		padding: 0.75rem 1.5rem;
+		background: #1d2c43;
+		border-bottom: 1px solid #3d4f63;
+	}
+
+	.history-table-header span {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.5);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.history-empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 3rem 1.5rem;
+		text-align: center;
+	}
+
+	.history-empty svg {
+		color: #3d4f63;
+		margin-bottom: 1rem;
+	}
+
+	.history-empty p {
+		margin: 0;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.history-empty span {
+		margin-top: 0.25rem;
+		font-size: 0.8125rem;
+		color: #71717a;
 	}
 
 	@media (max-width: 768px) {

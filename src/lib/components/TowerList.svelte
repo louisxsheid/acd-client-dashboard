@@ -441,9 +441,21 @@
 							<div class="carrier-badges">
 								{#if tower.provider_names && tower.provider_names.length > 0}
 									{#each tower.provider_names as providerName}
+										{@const isOncorGhostLead = providerName === 'Ghost Lead' && tower.entity_name?.toLowerCase().includes('oncor')}
 										{@const displayName = getDisplayProviderName(providerName, tower.entity_name)}
 										{@const carrierStyle = getCarrierStyle(displayName)}
-										{#if displayName === 'Ghost Lead'}
+										{#if isOncorGhostLead}
+											<!-- Oncor entities: Show both Portfolio AND Ghost Lead badges -->
+											<span
+												class="carrier-badge"
+												style="background-color: #5EB1F7; color: white"
+											>
+												Portfolio
+											</span>
+											<span class="carrier-badge ghost-lead-badge" style="background-color: #0a1628">
+												<span class="ghost-lead-text">Ghost Lead</span>
+											</span>
+										{:else if displayName === 'Ghost Lead'}
 											<span class="carrier-badge ghost-lead-badge" style="background-color: {carrierStyle.bg}">
 												<span class="ghost-lead-text">Ghost Lead</span>
 											</span>
@@ -458,8 +470,20 @@
 									{/each}
 								{:else if getCarrierLabel(tower)}
 									{@const carrierLabel = getCarrierLabel(tower)}
+									{@const isOncorGhostLead = tower.carrier === 'Ghost Lead' && tower.entity_name?.toLowerCase().includes('oncor')}
 									{@const carrierStyle = getCarrierStyle(carrierLabel)}
-									{#if carrierLabel === 'Ghost Lead'}
+									{#if isOncorGhostLead}
+										<!-- Oncor entities: Show both Portfolio AND Ghost Lead badges -->
+										<span
+											class="carrier-badge"
+											style="background-color: #5EB1F7; color: white"
+										>
+											Portfolio
+										</span>
+										<span class="carrier-badge ghost-lead-badge" style="background-color: #0a1628">
+											<span class="ghost-lead-text">Ghost Lead</span>
+										</span>
+									{:else if carrierLabel === 'Ghost Lead'}
 										<span class="carrier-badge ghost-lead-badge" style="background-color: {carrierStyle.bg}">
 											<span class="ghost-lead-text">Ghost Lead</span>
 										</span>
@@ -485,18 +509,12 @@
 						</div>
 						<div class="tower-side">
 							{#if getAccessStateLabel(tower) !== 'SAMPLE'}
-								{#if getAccessStateLabel(tower) === 'Ghost Lead'}
-									<span class="access-badge ghost-lead-badge" style="background-color: {getAccessStateColor('Ghost Lead')}">
-										<span class="ghost-lead-text">Ghost Lead</span>
-									</span>
-								{:else}
-									<span
-										class="access-badge"
-										style="background-color: {getAccessStateColor(getAccessStateLabel(tower))}"
-									>
-										{getAccessStateLabel(tower)}
-									</span>
-								{/if}
+								<span
+									class="access-badge"
+									style="background-color: {getAccessStateColor(getAccessStateLabel(tower))}"
+								>
+									{getAccessStateLabel(tower)}
+								</span>
 							{/if}
 							<svg class="expand-icon" class:rotated={expanded} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="m6 9 6 6 6-6"/>

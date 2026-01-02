@@ -6,11 +6,13 @@
 	let canvas: HTMLCanvasElement;
 	let animationFrameId: number;
 	let gl: WebGLRenderingContext | null = null;
+	let canvasWidth = $state(0);
+	let canvasHeight = $state(0);
 
 	onMount(() => {
 		if (!canvas) return;
 
-		gl = canvas.getContext('webgl');
+		gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
 		if (!gl) {
 			console.error('WebGL not supported');
 			return;
@@ -244,10 +246,13 @@
 				viewportHeight = window.innerHeight;
 			}
 
+			// Set state for CSS dimensions (prevents CSS width:100% from resizing instantly)
+			canvasWidth = viewportWidth;
+			canvasHeight = viewportHeight;
+
+			// Set WebGL buffer size
 			canvas.width = viewportWidth * window.devicePixelRatio;
 			canvas.height = viewportHeight * window.devicePixelRatio;
-			canvas.style.width = viewportWidth + 'px';
-			canvas.style.height = viewportHeight + 'px';
 
 			gl.viewport(0, 0, canvas.width, canvas.height);
 		}
@@ -392,20 +397,80 @@
 		animate();
 
 		let resizeTimeout: ReturnType<typeof setTimeout>;
+
+		// Manual render function (kept for potential future use)
+		function renderFrame() {
+			if (!gl || !canvas) return;
+
+			const baseTime = (Date.now() - startTime) / 1000.0;
+			const currentTime = baseTime * 0.008;
+
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			// First pass: Generate noise texture
+			gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+			gl.viewport(0, 0, canvas.width, canvas.height);
+
+			gl.useProgram(noiseProgram);
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.enableVertexAttribArray(noiseVertexPos);
+			gl.vertexAttribPointer(noiseVertexPos, 3, gl.FLOAT, false, 0, 0);
+
+			gl.uniform3fv(noiseUniforms.resolution, [canvas.width, canvas.height, 1]);
+			gl.uniform1f(noiseUniforms.time, currentTime);
+			gl.uniform1f(noiseUniforms.scale, 0.002);
+			gl.uniform1f(noiseUniforms.speed, 1.0);
+			gl.uniform2fv(noiseUniforms.offset, [0, 0]);
+			gl.uniformMatrix4fv(noiseUniforms.perspective, false, orthoMatrix);
+			gl.uniformMatrix4fv(noiseUniforms.modelview, false, mvMatrix);
+
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+			// Second pass: Render topographic visualization
+			gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+			gl.viewport(0, 0, canvas.width, canvas.height);
+
+			gl.useProgram(topoProgram);
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.enableVertexAttribArray(topoVertexPos);
+			gl.vertexAttribPointer(topoVertexPos, 3, gl.FLOAT, false, 0, 0);
+
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+			gl.uniform1i(topoUniforms.texture, 0);
+
+			gl.uniform3fv(topoUniforms.resolution, [canvas.width, canvas.height, 1]);
+			gl.uniform1f(topoUniforms.time, currentTime);
+			gl.uniform1f(topoUniforms.coarseness, 2.0);
+			gl.uniformMatrix4fv(topoUniforms.perspective, false, orthoMatrix);
+			gl.uniformMatrix4fv(topoUniforms.modelview, false, mvMatrix);
+
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+			gl.flush();
+		}
+
 		const handleResize = () => {
 			if (isMobile) return;
 
-			if (resizeTimeout) {
-				clearTimeout(resizeTimeout);
-			}
+			// Immediately update CSS dimensions so canvas fills viewport
+			canvasWidth = window.innerWidth;
+			canvasHeight = window.innerHeight;
 
+			// Clear any pending timeout
+			if (resizeTimeout) clearTimeout(resizeTimeout);
+
+			// Debounce: wait for resize to stop, then update WebGL buffer
 			resizeTimeout = setTimeout(() => {
-				setupCanvas();
+				// Update WebGL buffer size
+				canvas.width = window.innerWidth * window.devicePixelRatio;
+				canvas.height = window.innerHeight * window.devicePixelRatio;
+				gl?.viewport(0, 0, canvas.width, canvas.height);
+
 				if (gl && noiseTexture) {
 					gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 				}
-			}, 250);
+			}, 150);
 		};
 
 		if (!isMobile) {
@@ -447,6 +512,9 @@
 	bind:this={canvas}
 	class="topo-canvas"
 	class:hidden={!visible}
+	class:initializing={canvasWidth === 0}
+	style:width={canvasWidth > 0 ? `${canvasWidth}px` : '100vw'}
+	style:height={canvasHeight > 0 ? `${canvasHeight}px` : '100vh'}
 ></canvas>
 
 <style>
@@ -456,15 +524,19 @@
 		position: fixed;
 		top: 0;
 		left: 0;
-		width: 100%;
-		height: 100%;
+		/* Dimensions set via inline style to prevent instant resize flash */
 		z-index: -1;
 		pointer-events: none;
-		opacity: 0.4;
-		transition: opacity 0.3s ease;
+		opacity: 0.25;
+		transition: opacity 0.2s ease-out;
 	}
 
 	.topo-canvas.hidden {
+		opacity: 0;
+	}
+
+	.topo-canvas.initializing {
+		/* Hidden before first render */
 		opacity: 0;
 	}
 </style>
