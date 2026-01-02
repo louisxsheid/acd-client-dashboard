@@ -679,29 +679,15 @@
 												</div>
 											{/if}
 										</div>
-										{#if site?.telecom_ordinance_link || site?.zoning_code_link}
-											<div class="zoning-links">
-												{#if site?.telecom_ordinance_link}
-													<a href={site.telecom_ordinance_link} target="_blank" rel="noopener noreferrer" class="map-link primary">
-														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-															<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-															<polyline points="15 3 21 3 21 9"/>
-															<line x1="10" x2="21" y1="14" y2="3"/>
-														</svg>
-														View Wireless Ordinance
-													</a>
-												{/if}
-												{#if site?.zoning_code_link}
-													<a href={site.zoning_code_link} target="_blank" rel="noopener noreferrer" class="map-link secondary">
-														<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-															<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-															<polyline points="15 3 21 3 21 9"/>
-															<line x1="10" x2="21" y1="14" y2="3"/>
-														</svg>
-														View Zoning Code
-													</a>
-												{/if}
-											</div>
+										{#if site?.city && site?.state}
+											<a href="/zoning/{site.city.toLowerCase().replace(/\s+/g, '-')}-{site.state.toLowerCase()}" class="map-link">
+												<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<path d="M12 2L2 7l10 5 10-5-10-5z"/>
+													<path d="M2 17l10 5 10-5"/>
+													<path d="M2 12l10 5 10-5"/>
+												</svg>
+												View Zoning Code
+											</a>
 										{/if}
 									</div>
 								{:else}
